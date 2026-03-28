@@ -22,8 +22,13 @@ resource "google_storage_bucket" "data_lake" {
   force_destroy               = true
 
   lifecycle_rule {
-    condition { age = 90 }
-    action    { type = "SetStorageClass"; storage_class = "NEARLINE" }
+    condition {
+      age = 90
+    }
+    action {
+      type          = "SetStorageClass"
+      storage_class = "NEARLINE"
+    }
   }
 
   versioning { enabled = true }
@@ -94,8 +99,6 @@ resource "google_bigquery_table" "raw_rides" {
     { name = "start_date",       type = "TIMESTAMP", mode = "NULLABLE" },
     { name = "start_station_id", type = "STRING",    mode = "NULLABLE" },
     { name = "start_station_name", type = "STRING",  mode = "NULLABLE" },
-    { name = "end_station_logical_terminal", type = "STRING", mode = "NULLABLE" },
-    { name = "start_station_logical_terminal", type = "STRING", mode = "NULLABLE" },
     { name = "end_station_priority_id", type = "STRING", mode = "NULLABLE" },
     { name = "_source_file",     type = "STRING",    mode = "NULLABLE" },
     { name = "_ingested_at",     type = "TIMESTAMP", mode = "NULLABLE" }

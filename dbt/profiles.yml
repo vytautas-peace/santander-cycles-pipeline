@@ -8,7 +8,6 @@ santander_cycles:
       dataset: santander_cycles_staging
       keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS', 'keys/gcp-sa-key.json') }}"
       location: EU
-      timeout_seconds: 300
       threads: 4
       job_execution_timeout_seconds: 600
       priority: interactive
@@ -19,7 +18,6 @@ santander_cycles:
       dataset: santander_cycles_staging
       keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS') }}"
       location: EU
-      timeout_seconds: 300
       threads: 8
       job_execution_timeout_seconds: 900
       priority: batch

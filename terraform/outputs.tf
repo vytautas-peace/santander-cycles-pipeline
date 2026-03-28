@@ -15,7 +15,7 @@ output "staging_dataset" {
 
 output "marts_dataset" {
   description = "BigQuery marts dataset ID"
-  value       = google_bigquery_dataset.marts.dataset_id
+  value       = google_bigquery_dataset.mart.dataset_id
 }
 
 output "pipeline_sa_email" {
