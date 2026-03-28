@@ -1,0 +1,33 @@
+# Secrets & credentials
+.env
+keys/
+*.json
+!dbt/packages.yml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# Terraform
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+
+# Temp data
+/tmp/tfl/
+
+# IDE
+.vscode/
+.idea/
+*.swp

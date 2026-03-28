@@ -1,0 +1,38 @@
+name: santander_cycles
+version: '1.0.0'
+config-version: 2
+
+profile: santander_cycles
+
+model-paths: ["models"]
+seed-paths:  ["seeds"]
+test-paths:  ["tests"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  santander_cycles:
+    staging:
+      +schema:       staging
+      +materialized: view
+    marts:
+      +schema:       mart
+      +materialized: table
+      fct_rides:
+        +partition_by:
+          field: ride_month
+          data_type: date
+          granularity: month
+        +cluster_by: ["start_station_id", "end_station_id"]
+      dim_stations:
+        +cluster_by: ["borough"]
+      mart_monthly_summary:
+        +partition_by:
+          field: ride_month
+          data_type: date
+          granularity: month
+
+vars:
+  project_id: "{{ env_var('GCP_PROJECT') }}"
+  raw_dataset: "santander_cycles_raw"

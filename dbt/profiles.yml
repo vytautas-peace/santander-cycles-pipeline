@@ -1,0 +1,25 @@
+santander_cycles:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('GCP_PROJECT') }}"
+      dataset: santander_cycles_staging
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS', 'keys/gcp-sa-key.json') }}"
+      location: EU
+      timeout_seconds: 300
+      threads: 4
+      job_execution_timeout_seconds: 600
+      priority: interactive
+    prod:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('GCP_PROJECT') }}"
+      dataset: santander_cycles_staging
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS') }}"
+      location: EU
+      timeout_seconds: 300
+      threads: 8
+      job_execution_timeout_seconds: 900
+      priority: batch
