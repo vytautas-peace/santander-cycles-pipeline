@@ -10,13 +10,13 @@ terraform {
 
 provider "google" {
   project = var.project_id
-  region  = var.region
+  region  = var.location
 }
 
 # GCS Data Lake
 resource "google_storage_bucket" "data_lake" {
   name                        = "${var.project_id}-santander-cycles-lake"
-  location                    = var.region
+  location                    = var.location
   storage_class               = "STANDARD"
   uniform_bucket_level_access = true
   force_destroy               = true
@@ -53,7 +53,7 @@ resource "google_bigquery_dataset" "raw" {
   dataset_id                 = "santander_cycles_raw"
   friendly_name              = "Santander Cycles - Raw"
   description                = "Raw ingested CSV data from TfL"
-  location                   = var.bq_location
+  location                   = var.location
   delete_contents_on_destroy = true
   labels = { project = "santander-cycles", layer = "raw", env = var.environment }
 }
@@ -62,7 +62,7 @@ resource "google_bigquery_dataset" "staging" {
   dataset_id                 = "santander_cycles_staging"
   friendly_name              = "Santander Cycles - Staging"
   description                = "Cleaned and typed dbt stg_ models"
-  location                   = var.bq_location
+  location                   = var.location
   delete_contents_on_destroy = true
   labels = { project = "santander-cycles", layer = "staging", env = var.environment }
 }
@@ -71,7 +71,7 @@ resource "google_bigquery_dataset" "mart" {
   dataset_id                 = "santander_cycles_mart"
   friendly_name              = "Santander Cycles - Data Mart"
   description                = "Production fact and dimension tables"
-  location                   = var.bq_location
+  location                   = var.location
   delete_contents_on_destroy = true
   labels = { project = "santander-cycles", layer = "mart", env = var.environment }
 }

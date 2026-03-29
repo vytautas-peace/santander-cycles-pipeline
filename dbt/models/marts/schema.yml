@@ -20,8 +20,9 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 1
-              max_value: 86400
+              arguments:
+                min_value: 1
+                max_value: 86400
       - name: start_station_id
         tests: [not_null]
       - name: end_station_id
@@ -31,17 +32,17 @@ models:
     description: >
       Station dimension. One row per unique docking station.
       Station names are the most-recently-observed value (some stations were renamed).
-      Borough is extracted from the name suffix pattern "Name, Borough".
-      Clustered by borough for fast geographic filtering.
+      Clustered by station_id for fast joins.
     columns:
       - name: station_id
         tests: [not_null, unique]
       - name: station_name
         tests: [not_null]
       - name: borough
+        description: "London borough (or Other London) for map colouring — never Unknown"
         tests: [not_null]
 
-  - name: mart_monthly_summary
+  - name: monthly_summary
     description: >
       Pre-aggregated monthly ride metrics. Feeds dashboard Tile 1 (rides over time).
       Partitioned by ride_month for efficient date-range queries.
@@ -52,14 +53,27 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
+              arguments:
+                min_value: 0
 
-  - name: mart_station_stats
+  - name: station_stats
     description: >
       Per-station aggregations. Feeds dashboard Tile 2 (top stations).
-      Clustered by borough for geographic drill-downs.
+      Clustered by station_id for fast joins.
     columns:
       - name: station_id
         tests: [not_null, unique]
-      - name: total_activity
+      - name: borough
         tests: [not_null]
+
+  - name: bike_stats
+    description: "Per-bike aggregations — bicycle of the year stats"
+    columns:
+      - name: bike_id
+        tests: [not_null, unique]
+
+  - name: yearly_stats
+    description: "Per-year aggregations — ride of the year, hours, fleet stats"
+    columns:
+      - name: year
+        tests: [not_null, unique]

@@ -31,3 +31,5 @@ terraform/terraform.tfvars
 .vscode/
 .idea/
 *.swp
+
+.bruin.yml

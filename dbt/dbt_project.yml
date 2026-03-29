@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/dbt-labs/dbt-jsonschema/main/schemas/dbt_project.json
+
 name: santander_cycles
 version: '1.0.0'
 config-version: 2
@@ -19,19 +21,6 @@ models:
     marts:
       +schema:       mart
       +materialized: table
-      fct_rides:
-        +partition_by:
-          field: ride_month
-          data_type: date
-          granularity: month
-        +cluster_by: ["start_station_id", "end_station_id"]
-      dim_stations:
-        +cluster_by: ["borough"]
-      mart_monthly_summary:
-        +partition_by:
-          field: ride_month
-          data_type: date
-          granularity: month
 
 vars:
   project_id: "{{ env_var('GCP_PROJECT') }}"

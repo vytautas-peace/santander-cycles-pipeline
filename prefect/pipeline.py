@@ -11,23 +11,24 @@ DAG steps:
 """
  
 from __future__ import annotations
- 
+
 import io
 import os
 import re
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
- 
+
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import requests
 from bs4 import BeautifulSoup
 from google.cloud import bigquery, storage
-from prefect import flow, get_run_logger, task
 from prefect.tasks import task_input_hash
- 
+
+from prefect import flow, get_run_logger, task
+
 # ── Configuration ──────────────────────────────────────────────────────────────
 TFL_BASE_URL   = "https://cycling.data.tfl.gov.uk"
 TFL_S3_URL     = "https://s3-eu-west-1.amazonaws.com/cycling.data.tfl.gov.uk"
@@ -59,6 +60,10 @@ COLUMN_MAP = {
     "start station name": "start_station_name",
     "startstationname": "start_station_name",
     "end station priority id": "end_station_priority_id",
+    "startstation id": "start_station_id",
+    "endstation id": "end_station_id",
+    "startstation name": "start_station_name",
+    "endstation name": "end_station_name",
 }
  
 DATETIME_COLS = ["start_date", "end_date"]

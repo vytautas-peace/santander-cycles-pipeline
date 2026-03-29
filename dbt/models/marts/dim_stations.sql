@@ -1,19 +1,30 @@
 -- dim_stations.sql
 -- Station dimension derived from ride data (no external lookup needed).
 -- Uses the most-recent name observed for each station ID.
--- Clustered by borough (extracted from name suffix).
--- WHY clustering by borough? Dashboards filter/group by borough heavily;
--- clustering eliminates full scans for geographic slices.
+-- borough: manual overrides for edge IDs + name heuristics; never null (dashboard colour).
 
 {{
   config(
     materialized = 'table',
-    cluster_by   = ['borough'],
+    cluster_by   = ['station_id'],
     labels       = {'layer': 'mart', 'project': 'santander-cycles'}
   )
 }}
 
-with starts as (
+-- TfL IDs that do not resolve cleanly from name alone (depots, renames, etc.)
+with overrides as (
+
+    select * from unnest([
+        struct('434' as station_id, 'Lambeth' as borough),
+        struct('346' as station_id, 'Islington' as borough),
+        struct('465' as station_id, 'Hackney' as borough),
+        struct('571' as station_id, 'Hammersmith and Fulham' as borough),
+        struct('780' as station_id, 'Hammersmith and Fulham' as borough)
+    ])
+
+),
+
+starts as (
     select
         start_station_id  as station_id,
         start_station_name as station_name,
@@ -54,39 +65,22 @@ deduped as (
     where rn = 1
 ),
 
--- Extract borough from station name pattern "Name, Borough"
 with_borough as (
     select
-        station_id,
-        station_name,
-        case
-            when station_name like '%, %'
-                then trim(split(station_name, ', ')[safe_offset(
-                    array_length(split(station_name, ', ')) - 1
-                )])
-            else 'Unknown'
-        end as borough
-    from deduped
-),
-
--- Ride counts for station ranking
-ride_counts as (
-    select
-        start_station_id as station_id,
-        count(*)         as total_departures
-    from {{ ref('stg_rides') }}
-    group by 1
-),
-
-final as (
-    select
-        s.station_id,
-        s.station_name,
-        s.borough,
-        coalesce(r.total_departures, 0) as total_departures
-    from with_borough s
-    left join ride_counts r using (station_id)
+        d.station_id,
+        d.station_name,
+        coalesce(
+            o.borough,
+            case
+                when regexp_contains(lower(d.station_name), r'westfield|shepherd|imperial wharf') then 'Hammersmith and Fulham'
+                when regexp_contains(lower(d.station_name), r'pitfield|hoxton') then 'Hackney'
+                when regexp_contains(lower(d.station_name), r'mechanical workshop') and regexp_contains(lower(d.station_name), r'clapham') then 'Lambeth'
+                when regexp_contains(lower(d.station_name), r'mechanical workshop') and regexp_contains(lower(d.station_name), r'penton') then 'Islington'
+            end,
+            'Other London'
+        ) as borough
+    from deduped d
+    left join overrides o using (station_id)
 )
 
-select * from final
-order by total_departures desc
+select * from with_borough

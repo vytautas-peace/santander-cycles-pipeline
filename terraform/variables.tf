@@ -3,16 +3,9 @@ variable "project_id" {
   type        = string
 }
 
-variable "region" {
-  description = "GCP region for GCS bucket"
+variable "location" {
+  description = "GCP location for GCS and BigQuery"
   type        = string
-  default     = "EU"
-}
-
-variable "bq_location" {
-  description = "BigQuery dataset location"
-  type        = string
-  default     = "EU"
 }
 
 variable "environment" {

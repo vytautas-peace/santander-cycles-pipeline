@@ -1,11 +1,11 @@
 -- mart_station_stats.sql
 -- Per-station aggregations for dashboard Tile 2 (top stations map/bar chart).
--- Clustered by borough for fast geographic filtering.
+-- Clustered by station_id for fast joins.
 
 {{
   config(
     materialized = 'table',
-    cluster_by   = ['borough'],
+    cluster_by   = ['station_id'],
     labels       = {'layer': 'mart', 'project': 'santander-cycles'}
   )
 }}
@@ -21,8 +21,7 @@ stations as (
 departures as (
     select
         start_station_id      as station_id,
-        count(*)              as total_departures,
-        round(avg(duration_minutes), 2) as avg_departure_duration_min
+        count(*)              as total_departures
     from rides
     group by 1
 ),
@@ -44,8 +43,6 @@ final as (
         coalesce(a.total_arrivals, 0)            as total_arrivals,
         coalesce(d.total_departures, 0)
           + coalesce(a.total_arrivals, 0)        as total_activity,
-        coalesce(d.avg_departure_duration_min, 0) as avg_departure_duration_min,
-        -- Net flow: positive = more departures (net source), negative = net sink
         coalesce(d.total_departures, 0)
           - coalesce(a.total_arrivals, 0)        as net_flow
     from stations s
@@ -54,4 +51,3 @@ final as (
 )
 
 select * from final
-order by total_activity desc

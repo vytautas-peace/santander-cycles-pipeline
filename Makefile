@@ -34,10 +34,14 @@ install:  ## Create venv and install all dependencies via uv
 
 # ── Infrastructure ────────────────────────────────────────────────────────────
 infra-plan:  ## Preview Terraform changes
-	cd $(TF_DIR) && terraform init -upgrade && terraform plan -var-file=terraform.tfvars
+	@set -a && source .env && set +a && \
+		export TF_VAR_location=$$LOCATION && \
+		cd $(TF_DIR) && terraform init -upgrade && terraform plan
 
 infra-apply:  ## Apply Terraform (create GCS bucket, BQ datasets, SA key)
-	cd $(TF_DIR) && terraform init -upgrade && terraform apply -var-file=terraform.tfvars -auto-approve
+	@set -a && source .env && set +a && \
+		export TF_VAR_location=$$LOCATION && \
+		cd $(TF_DIR) && terraform init -upgrade && terraform apply -auto-approve
 	@echo ""
 	@echo "Extracting service account key..."
 	@mkdir -p keys
@@ -48,7 +52,9 @@ infra-apply:  ## Apply Terraform (create GCS bucket, BQ datasets, SA key)
 	@cd $(TF_DIR) && echo "GCS_BUCKET=$$(terraform output -raw gcs_bucket_name)"
 
 infra-destroy:  ## Destroy all GCP resources (CAUTION: deletes data)
-	cd $(TF_DIR) && terraform destroy -var-file=terraform.tfvars
+	@set -a && source .env && set +a && \
+		export TF_VAR_location=$$LOCATION && \
+		cd $(TF_DIR) && terraform destroy
 
 # ── Ingestion Pipeline ────────────────────────────────────────────────────────
 run-pipeline:  ## Run full ingestion (all historical files)
@@ -100,5 +106,12 @@ clean:  ## Remove venv, temp files, and dbt artefacts
 	rm -rf .venv /tmp/tfl $(DBT_DIR)/target $(DBT_DIR)/dbt_packages
 	find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 	find . -name "*.pyc" -delete 2>/dev/null || true
+
+
+# ── Dashboard ─────────────────────────────────────────────────────────────────
+dashboard:  ## Start Streamlit dashboard (opens at localhost:8501)
+	@set -a && source .env && set +a && \
+		uv run streamlit run streamlit/app.py
+
 
 all: infra-apply install dbt-deps run-pipeline-test dbt-run dbt-test  ## Full run from scratch

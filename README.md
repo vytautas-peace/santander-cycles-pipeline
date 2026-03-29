@@ -94,11 +94,11 @@ santander-cycles-pipeline/
   Looker Studio date range filters translate directly to partition pruning.
 
 **`dim_stations`** — station lookup:
-- **Clustered by `borough`**
+- **Clustered by `station_id`**
   Geographic filtering (e.g. "all stations in Hackney") is the primary access pattern. No partitioning needed — the table is small (~800 rows).
 
 **`mart_station_stats`** — station aggregations:
-- **Clustered by `borough`**
+- **Clustered by `station_id`**
   Same rationale as `dim_stations`.
 
 ### dbt Lineage

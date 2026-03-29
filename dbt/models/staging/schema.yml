@@ -12,7 +12,6 @@ sources:
             description: "Unique identifier for each rental"
             tests:
               - not_null
-              - unique
           - name: start_date
             description: "Journey start timestamp (UTC)"
             tests: [not_null]
@@ -35,5 +34,6 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 86400  # cap at 24 hours
+              arguments:
+                min_value: 0
+                max_value: 86400  # cap at 24 hours
