@@ -13,3 +13,8 @@ variable "environment" {
   type        = string
   default     = "dev"
 }
+
+variable "credentials" {
+  description = "Path to Terraform service account key JSON"
+  type        = string
+}

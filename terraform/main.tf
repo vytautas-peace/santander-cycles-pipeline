@@ -11,11 +11,12 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.location
+  credentials = file(var.credentials)
 }
 
 # GCS Data Lake
-resource "google_storage_bucket" "data_lake" {
-  name                        = "${var.project_id}-santander-cycles-lake"
+resource "google_storage_bucket" "gcs_bkt" {
+  name                        = "${var.project_id}-bkt"
   location                    = var.location
   storage_class               = "STANDARD"
   uniform_bucket_level_access = true
@@ -38,19 +39,19 @@ resource "google_storage_bucket" "data_lake" {
 
 resource "google_storage_bucket_object" "raw_folder" {
   name    = "raw/"
-  bucket  = google_storage_bucket.data_lake.name
+  bucket  = google_storage_bucket.gcs_bkt.name
   content = " "
 }
 
 resource "google_storage_bucket_object" "processed_folder" {
   name    = "processed/"
-  bucket  = google_storage_bucket.data_lake.name
+  bucket  = google_storage_bucket.gcs_bkt.name
   content = " "
 }
 
 # BigQuery Datasets
 resource "google_bigquery_dataset" "raw" {
-  dataset_id                 = "santander_cycles_raw"
+  dataset_id                 = "san_cycles_raw"
   friendly_name              = "Santander Cycles - Raw"
   description                = "Raw ingested CSV data from TfL"
   location                   = var.location
@@ -59,7 +60,7 @@ resource "google_bigquery_dataset" "raw" {
 }
 
 resource "google_bigquery_dataset" "staging" {
-  dataset_id                 = "santander_cycles_staging"
+  dataset_id                 = "san_cycles_stg"
   friendly_name              = "Santander Cycles - Staging"
   description                = "Cleaned and typed dbt stg_ models"
   location                   = var.location
@@ -68,7 +69,7 @@ resource "google_bigquery_dataset" "staging" {
 }
 
 resource "google_bigquery_dataset" "mart" {
-  dataset_id                 = "santander_cycles_mart"
+  dataset_id                 = "san_cycles_mrt"
   friendly_name              = "Santander Cycles - Data Mart"
   description                = "Production fact and dimension tables"
   location                   = var.location
@@ -77,9 +78,9 @@ resource "google_bigquery_dataset" "mart" {
 }
 
 # BigQuery Raw Table
-resource "google_bigquery_table" "raw_rides" {
+resource "google_bigquery_table" "journeys_raw" {
   dataset_id          = google_bigquery_dataset.raw.dataset_id
-  table_id            = "raw_rides"
+  table_id            = "journeys_raw"
   deletion_protection = false
 
   time_partitioning {
@@ -90,16 +91,16 @@ resource "google_bigquery_table" "raw_rides" {
   clustering = ["start_station_id"]
 
   schema = jsonencode([
-    { name = "rental_id",        type = "STRING",    mode = "NULLABLE" },
+    { name = "rental_id",        type = "INTEGER",    mode = "NULLABLE" },
     { name = "duration",         type = "INTEGER",   mode = "NULLABLE" },
-    { name = "bike_id",          type = "STRING",    mode = "NULLABLE" },
+    { name = "bike_id",          type = "INTEGER",    mode = "NULLABLE" },
     { name = "end_date",         type = "TIMESTAMP", mode = "NULLABLE" },
-    { name = "end_station_id",   type = "STRING",    mode = "NULLABLE" },
+    { name = "end_station_id",   type = "INTEGER",    mode = "NULLABLE" },
     { name = "end_station_name", type = "STRING",    mode = "NULLABLE" },
     { name = "start_date",       type = "TIMESTAMP", mode = "NULLABLE" },
-    { name = "start_station_id", type = "STRING",    mode = "NULLABLE" },
+    { name = "start_station_id", type = "INTEGER",    mode = "NULLABLE" },
     { name = "start_station_name", type = "STRING",  mode = "NULLABLE" },
-    { name = "end_station_priority_id", type = "STRING", mode = "NULLABLE" },
+    { name = "end_station_priority_id", type = "INTEGER", mode = "NULLABLE" },
     { name = "_source_file",     type = "STRING",    mode = "NULLABLE" },
     { name = "_ingested_at",     type = "TIMESTAMP", mode = "NULLABLE" }
   ])
@@ -130,11 +131,34 @@ resource "google_service_account_key" "pipeline_sa_key" {
   service_account_id = google_service_account.pipeline_sa.name
 }
 
-output "gcs_bucket_name"  { value = google_storage_bucket.data_lake.name }
-output "bq_raw_dataset"   { value = google_bigquery_dataset.raw.dataset_id }
-output "bq_mart_dataset"  { value = google_bigquery_dataset.mart.dataset_id }
-output "sa_email"         { value = google_service_account.pipeline_sa.email }
-output "sa_key_b64"       { 
-  value     = google_service_account_key.pipeline_sa_key.private_key
-  sensitive = true 
+
+output "gcs_bkt" {
+  description = "GCS data lake bucket name"
+  value       = google_storage_bucket.gcs_bkt.name
+}
+
+output "bq_ds_raw" {
+  description = "BigQuery raw dataset ID"
+  value       = google_bigquery_dataset.raw.dataset_id 
+}
+
+output "bq_ds_stg" {
+  description = "BigQuery staging dataset ID"
+  value       = google_bigquery_dataset.staging.dataset_id 
+}
+
+output "bq_ds_mrt" {
+  description = "BigQuery marts dataset ID"
+  value       = google_bigquery_dataset.mart.dataset_id 
+}
+
+output "pipeline_sa_email" {
+  description = "Pipeline service account email"
+  value       = google_service_account.pipeline_sa.email
+}
+
+output "sa_key_b64" {
+  description = "Pipeline service account key"
+  value       = google_service_account_key.pipeline_sa_key.private_key
+  sensitive   = true 
 }

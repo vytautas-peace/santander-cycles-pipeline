@@ -5,12 +5,7 @@
 with source as (
 
     select * from {{ source('raw', 'raw_rides') }}
-),
 
-deduplicated as (
-    select *
-    from source
-    qualify row_number() over (partition by rental_id order by _ingested_at desc) = 1
 ),
 
 cleaned as (
@@ -32,9 +27,9 @@ cleaned as (
         end                                                         as duration_seconds,
 
         -- Station IDs and names
-        {{ normalize_station_id('start_station_id') }}              as start_station_id,
+        cast(start_station_id   as string)                          as start_station_id,
         trim(start_station_name)                                    as start_station_name,
-        {{ normalize_station_id('end_station_id') }}                as end_station_id,
+        cast(end_station_id     as string)                          as end_station_id,
         trim(end_station_name)                                      as end_station_name,
 
         -- Derived date fields (for partitioning + analysis)
@@ -53,16 +48,21 @@ cleaned as (
         _source_file,
         _ingested_at
 
-    from deduplicated
+    from source
 
     where
         -- Remove rows with no usable start timestamp
         start_date is not null
-        -- Same quality bar as fct_rides: duration must parse to 1–86400 s (cannot reference alias here)
-        and safe_cast(duration as int64) between 1 and 86400
         -- Remove test/unknown stations
         and start_station_id not in ('0', 'nan', 'None')
         and end_station_id   not in ('0', 'nan', 'None')
+        -- Year filter (passed via --vars years="2022 2023" or "all")
+        {% set years_var = var("years", "all") %}
+        {% if years_var != "all" %}
+        and extract(year from start_date) in (
+            {{ years_var.split() | join(", ") }}
+        )
+        {% endif %}
 
 )
 

@@ -251,3 +251,95 @@ TfL Santander Cycles usage statistics:
 - Licence: [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/)
 - Coverage: 2012 – present, updated weekly
 - Format: CSV, ~300+ files, ~100M+ total rows
+
+
+
+
+# Dev notes
+
+## Create a service account for Terraform
+
+1. Login with gcloud auth login.
+
+2. Create Terraform service account.
+
+```shell
+gcloud iam service-accounts create terraform \
+  --display-name="Terraform SA" \
+  --project=san-cycles-data-pipe
+```
+
+3. Create and download the key.
+
+```shell
+gcloud iam service-accounts keys create \
+  keys/terraform-sa-key.json \
+  --iam-account=terraform@san-cycles-data-pipe.iam.gserviceaccount.com \
+  --project=san-cycles-data-pipe
+```
+
+4. Assign permissions to create / destry infrastructure
+
+```shell
+for role in \
+  roles/bigquery.dataOwner \
+  roles/storage.admin \
+  roles/iam.serviceAccountAdmin \
+  roles/iam.serviceAccountKeyAdmin \
+  roles/resourcemanager.projectIamAdmin; do
+  gcloud projects add-iam-policy-binding san-cycles-data-pipe \
+    --member="serviceAccount:terraform@san-cycles-data-pipe.iam.gserviceaccount.com" \
+    --role="$role"
+done
+```
+
+5. Enable Cloud Resource Manager API.
+
+```shell
+gcloud services enable cloudresourcemanager.googleapis.com --project san-cycles-data-pipe
+```
+
+
+## CSV knowledge bank
+
+What we know about the TfL data:
+
+File sources:
+
+- 2012–2016: zip files on S3 (cyclehireusagestats-2012.zip etc, 2016TripDataZip.zip)
+- 2017+: individual weekly CSV files on S3
+- S3 bucket: s3-eu-west-1.amazonaws.com/cycling.data.tfl.gov.uk
+- CDN for downloads: cycling.data.tfl.gov.uk
+
+Column name chaos across years:
+
+- Rental Id / rental id → rental_id
+- StartStation Id / Start Station Id / startstationid / startstation id → - start_station_id
+- Same mess for end station, bike id, dates
+- Start Station Logical Terminal was an alias for station ID in some years
+- Duration was seconds in early files, Duration (ms) appeared later alongside a string Duration
+
+Data types:
+
+- All IDs (rental_id, bike_id, start_station_id, end_station_id, end_station_priority_id) → INTEGER
+- duration → INTEGER (seconds) early years, then STRING
+- start_date, end_date → TIMESTAMP (dayfirst, UTC)
+- Station names → STRING
+- Early 2012 files have dates like "18  Aug12" (two spaces, 2-digit year)
+
+Business logic:
+
+- Deduplicate on rental_id within each file
+- Filter out rides with no start_date
+- Duration valid range: fail on records where (end_date - start_date - duration) > 300 seconds
+- Zips: extract all CSVs inside, process each individually
+- YEARS parameter controls which files are downloaded — zips for 2012–2016, CSVs for 2017+
+
+BigQuery target:
+
+- Dataset: san_cycles_raw
+- Table: journeys_raw
+- Partitioned by start_date (monthly)
+- Clustered by start_station_id
+
+
