@@ -1,18 +1,14 @@
 # Santander Cycles Data Pipeline – Makefile
 # ==========================================
-# Prerequisites: gcloud CLI, terraform, uv, make
+# Prerequisites: gcloud CLI, terraform, bruin, uv
 # Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh
 
 .PHONY: help setup install check-uv check-years \
         infra-plan infra-apply infra-destroy \
-        run pref-ingest \
-        dbt-deps dbt-run dbt-test dbt-docs \
-        stream-dash test lint clean
+        bruin-ingest bruin-stg bruin-mrt bruin-run \
+        stream-dash clean
 
-PYTHON      := uv run python
-DBT_DIR     := dbt
-PREFECT_DIR := prefect
-TF_DIR      := terraform
+TF_DIR := terraform
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -25,9 +21,10 @@ check-years:
 import sys, re, os; \
 years = os.environ.get('YEARS', '').strip(); \
 if not years: \
-    print('ERROR: YEARS not set in .env. Add e.g. YEARS=2022 or YEARS=all'); sys.exit(1); \
+    print('ERROR: YEARS not set in .env. Add e.g. YEARS=2024'); sys.exit(1); \
 if years != 'all': \
-    parts = years.split(); \
+    parts = re.split(r'[,\s\[\]]+', years.strip('[]')); \
+    parts = [p for p in parts if p]; \
     invalid = [y for y in parts if not re.match(r'^20[0-9]{2}$$', y)]; \
     if invalid: \
         print(f'ERROR: Invalid years: {invalid}. Use 4-digit years or \"all\"'); sys.exit(1); \
@@ -40,7 +37,7 @@ print(f'Years: {years}'); \
 # ── Setup ─────────────────────────────────────────────────────────────────────
 setup: check-uv install  ## Full local setup
 	@cp -n .env.example .env 2>/dev/null && \
-		echo "Created .env — fill in GCP_PROJECT, GCS_BKT, LOCATION" || \
+		echo "Created .env — fill in GCP_PROJECT, LOCATION, TF_VAR_credentials" || \
 		echo ".env already exists"
 
 check-uv:
@@ -54,11 +51,13 @@ install:  ## Install all dependencies via uv
 infra-plan:  ## Preview Terraform changes
 	@set -a && source .env && set +a && \
 		export TF_VAR_location=$$LOCATION && \
+		export TF_VAR_project_id=$$GCP_PROJECT && \
 		cd $(TF_DIR) && terraform init -upgrade && terraform plan
 
-infra-apply:  ## Apply Terraform (create GCS bucket, BQ datasets, SA key)
+infra-apply:  ## Apply Terraform (create GCS bucket, BQ datasets, SA keys)
 	@set -a && source .env && set +a && \
 		export TF_VAR_location=$$LOCATION && \
+		export TF_VAR_project_id=$$GCP_PROJECT && \
 		cd $(TF_DIR) && terraform init -upgrade && terraform apply -auto-approve
 	@echo ""
 	@echo "Extracting service account key..."
@@ -72,65 +71,41 @@ infra-apply:  ## Apply Terraform (create GCS bucket, BQ datasets, SA key)
 infra-destroy:  ## Destroy all GCP resources
 	@set -a && source .env && set +a && \
 		export TF_VAR_location=$$LOCATION && \
+		export TF_VAR_project_id=$$GCP_PROJECT && \
 		cd $(TF_DIR) && terraform destroy
 
-
-# ── Ingestion ─────────────────────────────────────────────────────────────────
-pref-ingest:  ## Run Prefect ingestion (requires YEARS)
+# ── Bruin Pipeline ────────────────────────────────────────────────────────────
+bruin-ingest: check-years  ## Run raw ingestion asset (uses YEARS from .env)
 	@set -a && source .env && set +a && \
-		uv run python prefect/pipeline.py
+		bruin run bruin/assets/raw_journeys.py --var years="$$YEARS"
 
-# ── Transformation ────────────────────────────────────────────────────────────
-dbt-run:  ## Run dbt models (requires YEARS)
+bruin-stg:  ## Run staging asset (includes quality checks)
 	@set -a && source .env && set +a && \
-		[ -n "$$YEARS" ] || (echo "ERROR: YEARS not set. Use: make run" && exit 1) && \
-		cd $(DBT_DIR) && uv run dbt run \
-			--profiles-dir . \
-			--vars "{\"years\": \"$$YEARS\"}" \
-			--target dev
+		bruin run bruin/assets/stg_journeys.py
 
-dbt-deps:  ## Install dbt packages
-	cd $(DBT_DIR) && uv run dbt deps --profiles-dir .
-
-dbt-test:  ## Run dbt tests (requires YEARS)
+bruin-mrt:  ## Run all mart assets
 	@set -a && source .env && set +a && \
-		[ -n "$$YEARS" ] || (echo "ERROR: YEARS not set. Use: make run" && exit 1) && \
-		cd $(DBT_DIR) && uv run dbt test \
-			--profiles-dir . \
-			--vars "{\"years\": \"$$YEARS\"}" \
-			--target dev
+		bruin run bruin/assets/mrt_dim_stations.py && \
+		bruin run bruin/assets/mrt_fct_journeys.py && \
+		bruin run bruin/assets/mrt_station_stats.py && \
+		bruin run bruin/assets/mrt_bike_stats.py && \
+		bruin run bruin/assets/mrt_kpis_monthly.py
 
-dbt-docs:  ## Generate and serve dbt docs
+bruin-bikepoints:  ## Fetch TfL station/borough data (run once, or to pick up new stations)
 	@set -a && source .env && set +a && \
-		cd $(DBT_DIR) && uv run dbt docs generate --profiles-dir . && \
-		uv run dbt docs serve
+		bruin run bruin/assets/raw_bikepoints.py && \
+		bruin run bruin/assets/stg_bikepoints.py
+
+bruin-run:  ## Run full pipeline (ingest → stg → mrt)
+	@set -a && source .env && set +a && \
+		bruin run bruin/
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 stream-dash:  ## Start Streamlit dashboard (opens at localhost:8501)
 	@set -a && source .env && set +a && \
-		uv run streamlit run dashboard/app.py
-
-# ── Tests & Lint ──────────────────────────────────────────────────────────────
-test:  ## Run Python unit tests
-	uv run pytest scripts/test_pipeline.py -v --tb=short
-
-lint:  ## Lint Python code
-	uv run ruff check prefect/
+		uv run streamlit run streamlit/app.py
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
-clean:  ## Remove venv, temp files, dbt artefacts
-	rm -rf .venv /tmp/tfl $(DBT_DIR)/target $(DBT_DIR)/dbt_packages
-	find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-
-# ── Bruin Data Platform ───────────────────────────────────────────────────────
-bruin-ingest:  ## Run ingestion asset
-	@set -a && source .env && set +a && \
-		bruin run bruin/assets/journeys_raw.py --var years="$$YEARS"
-
-bruin-stg:  ## Run staging asset (includes quality checks)
-	@set -a && source .env && set +a && \
-		bruin run bruin/assets/journeys_stg.sql
-
-bruin-run:  ## Run full Bruin pipeline
-	@set -a && source .env && set +a && \
-		bruin run bruin/
+clean:  ## Remove venv and temp files
+	rm -rf .venv /tmp/tfl
+	find . -name "__pycache__" -type d -not -path "./bruin/*" -exec rm -rf {} + 2>/dev/null || true

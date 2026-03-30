@@ -1,0 +1,711 @@
+{
+  "version": 4,
+  "terraform_version": "1.14.8",
+  "serial": 62,
+  "lineage": "ea6c64d2-2f04-314c-f53c-6000dbe4bd4c",
+  "outputs": {
+    "bq_ds_mrt": {
+      "value": "san_cycles_mrt",
+      "type": "string"
+    },
+    "bq_ds_raw": {
+      "value": "san_cycles_raw",
+      "type": "string"
+    },
+    "bq_ds_stg": {
+      "value": "san_cycles_stg",
+      "type": "string"
+    },
+    "gcs_bkt": {
+      "value": "san-cycles-data-pipe-bkt",
+      "type": "string"
+    },
+    "pipeline_sa_email": {
+      "value": "santander-cycles-pipeline@san-cycles-data-pipe.iam.gserviceaccount.com",
+      "type": "string"
+    },
+    "sa_key_b64": {
+      "value": "ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiAgInByb2plY3RfaWQiOiAic2FuLWN5Y2xlcy1kYXRhLXBpcGUiLAogICJwcml2YXRlX2tleV9pZCI6ICJmYzllMmNlOWQ4NzkzNzFjNGE5YTc4MDk4ZjVlNWQ0MGM3MTI2MmQ4IiwKICAicHJpdmF0ZV9rZXkiOiAiLS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tXG5NSUlFdndJQkFEQU5CZ2txaGtpRzl3MEJBUUVGQUFTQ0JLa3dnZ1NsQWdFQUFvSUJBUURkZTRUcEhKbnhVMjZEXG5FVm1wTzhRdjNkY0VJK3kyQU9JYmFjUmVWL0NpWldZSndHZjdjZEtVWlZsa2RKbFN1c2tnbWNoeE1xZndrVmtNXG5Wc1pMRnkyRWFDZjJ6Zy8rd0UwZjZ2NkdsQlBpUXA3TU9hMFExcS94NTl2VmdyMUY0TWRmRVJka25iaityU1dmXG5uU1M4cnR0Q0hacmdoU2ZTNmxWb2pZM3RVRFdhRldqN3VwYStvY0ZzZzdFSzY3RFNPTWtDd05nYjBaMU1Ra2Y5XG5VdGIyc01yakhoVHhVQUdxT0hXbFF3T0x0aFg4dm9pdmhJOVFxOU5DemRPWnpBeXY1dVZZeDJ2U2FoZWszSUpMXG5xeWZoVERBMXRaTk5RMFZlbXhxNmhreGduY0puby9oRjlSd08yQlNjcFBEQ0ljQ3BRZHVPQnRoNGNSbExSa0IvXG5BdVpEalg1TEFnTUJBQUVDZ2dFQUg2S3lCRjRLZXhid3RSWDRXWnpvMC9GNjhlTnp2emQzRkhWU0VDdTllbVREXG5ZMmN4TXhBNkJPcEpEM2s4SVQzKzFvSkF5REoxSEg2V1dwWFdjd2xYZmc4bWpqRTJ4YXVRR0p3SFNRL0RtMURxXG52NzhKUWx0My9EU2pDT2RJdzc5c210NmxHY0VSbUljQTFjQ3JhNndLTTNKcEdlTExJbXhJVU12UFZ2TmJCS3dBXG5Ld3R6U0lscW9mS01lSzRzN2ZYekpUemJuTWdaejlOYW5jODJaZEU4UUQ5cG9uVDhQUXdoUFllNWF0NTNWVFFxXG5wUkpSelhTbUI4TmtPTytBY0t4MlBuK0llK0luOHB0R2MwOGsxekRQM0U2bFZIcUloN21VZmxhTWZKZUJDS3ZqXG5uMzhkUHM4dWhxK2Ivd290NjdRdHM0L0hoRFZ5a1h4S0hPKy9oMHZhNlFLQmdRRDB6Yy9iT0RBYmtmSk5iZ1o3XG5yZnhUcVhPZXkrSmlJd0t2ZDg4bGZrTEJSSlZVSitVSEFyZEs0RjFQYkRBOUtBQ0lzY25VVGRMS1ppaGlMekI2XG5zQkhMQmZhaW1INEJwMTdlSWdnSk44QlMwcWFWa1A1UE5qc2xsUEdMdXdoYmtONzhRbHVHc2UvQ1NUcVJ3Z1VnXG5vUm4rQ01UdjVtS1VBQUowVFRJVHZoeUwvUUtCZ1FEbm5LaEw1SndQS0xqZUVaaklMM095akNQODZWV2htMTF5XG5lZ2g4c0YyU2ovZVlnZW9nUVprQmw5UmQ0Vlo1d0xYTXcwTHNyaXJtVm96R3BsQ1p1K0JtUzhRWTU4NjRJOXB1XG5CcVM2cTdCZlQ4ckU0R1l3UTV3a3U5TzlGbmx2ZWRoQm9WajM1ZWdsK01nOGhsc2RnV0p1dmk2TFY5eTZHcGNVXG43c3B3Q3FyeDV3S0JnUUNlNnJ4MFl4VlgwSGFyTFRHb09Gb0ZOWXVKR25Icm95NnJHZXV2T3plNm52c1JscFJtXG42S3gwUHhKVDdMZWorOFBjK1EwOGRRalJ1MStiM1daclBzRk9PcURSREkxQUpaYkFQUGRhaElhbFBYcEd2Y2xaXG5RcXRDeWwzRGg3YjFPaWFITzh5T3RCUWcyOGpadGtuOTFKYzdBaFpXWmdpNGF3a3MxckFiZ042blFRS0JnUUM5XG51Qm8zaUh5NUFoOWtjRCtaQXgyZmpLSFNBb1FOUzhtaEF3cytyKzBHSi8ybHBBMVcvTVRMaEVZRjNKWk1SeW5rXG5IN0lMVTZONmFEMEtYNk80T2loWFF3clBaOXB5QlpSZitmc25tWWx3bVZpOEtpQXF1c2NGWkFIT2FzRndLZnVWXG56d2Vra0dPMzd2QitlNFBaU0dtTDB5Y25Kd0o4UTFtc1lPbmNHekRwMHdLQmdRRGVpMWZ2d1IvOXlJM1dRdkhDXG5CQXplbDh1RjJMSkRaYk1sS0NFOWorNDg1UVFWK1lHMUZPZFdSUjg5aGFQYzZvcHo4ZE1RREQ1VzJQVXV0VGNMXG5ZNm5QdklIRDBiUk5KTDNVVmZQN1BSWktXdy9SWmtVR0xyTm5UcjFlekVCbWptTit2cDR0Yk9SSFpoNXp0WW1xXG40SitIeTlyU2laOWpObUpiVVkwbTNWTE5vQT09XG4tLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tXG4iLAogICJjbGllbnRfZW1haWwiOiAic2FudGFuZGVyLWN5Y2xlcy1waXBlbGluZUBzYW4tY3ljbGVzLWRhdGEtcGlwZS5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsCiAgImNsaWVudF9pZCI6ICIxMDY4MTk1ODkzOTU3NzI2MDQyODQiLAogICJhdXRoX3VyaSI6ICJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20vby9vYXV0aDIvYXV0aCIsCiAgInRva2VuX3VyaSI6ICJodHRwczovL29hdXRoMi5nb29nbGVhcGlzLmNvbS90b2tlbiIsCiAgImF1dGhfcHJvdmlkZXJfeDUwOV9jZXJ0X3VybCI6ICJodHRwczovL3d3dy5nb29nbGVhcGlzLmNvbS9vYXV0aDIvdjEvY2VydHMiLAogICJjbGllbnRfeDUwOV9jZXJ0X3VybCI6ICJodHRwczovL3d3dy5nb29nbGVhcGlzLmNvbS9yb2JvdC92MS9tZXRhZGF0YS94NTA5L3NhbnRhbmRlci1jeWNsZXMtcGlwZWxpbmUlNDBzYW4tY3ljbGVzLWRhdGEtcGlwZS5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsCiAgInVuaXZlcnNlX2RvbWFpbiI6ICJnb29nbGVhcGlzLmNvbSIKfQo=",
+      "type": "string",
+      "sensitive": true
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "google_bigquery_dataset",
+      "name": "mart",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "access": [
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "iam_member": "",
+                "role": "OWNER",
+                "routine": [],
+                "special_group": "",
+                "user_by_email": "terraform@san-cycles-data-pipe.iam.gserviceaccount.com",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "iam_member": "",
+                "role": "OWNER",
+                "routine": [],
+                "special_group": "projectOwners",
+                "user_by_email": "",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "iam_member": "",
+                "role": "READER",
+                "routine": [],
+                "special_group": "projectReaders",
+                "user_by_email": "",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "iam_member": "",
+                "role": "WRITER",
+                "routine": [],
+                "special_group": "projectWriters",
+                "user_by_email": "",
+                "view": []
+              }
+            ],
+            "creation_time": 1774792613827,
+            "dataset_id": "san_cycles_mrt",
+            "default_collation": "",
+            "default_encryption_configuration": [],
+            "default_partition_expiration_ms": 0,
+            "default_table_expiration_ms": 0,
+            "delete_contents_on_destroy": true,
+            "description": "Production fact and dimension tables",
+            "effective_labels": {
+              "env": "dev",
+              "layer": "mart",
+              "project": "santander-cycles"
+            },
+            "etag": "Z8AmUKOMRRMtkP01ECgsLw==",
+            "external_dataset_reference": [],
+            "friendly_name": "Santander Cycles - Data Mart",
+            "id": "projects/san-cycles-data-pipe/datasets/san_cycles_mrt",
+            "is_case_insensitive": false,
+            "labels": {
+              "env": "dev",
+              "layer": "mart",
+              "project": "santander-cycles"
+            },
+            "last_modified_time": 1774792613827,
+            "location": "asia-southeast1",
+            "max_time_travel_hours": "168",
+            "project": "san-cycles-data-pipe",
+            "resource_tags": null,
+            "self_link": "https://bigquery.googleapis.com/bigquery/v2/projects/san-cycles-data-pipe/datasets/san_cycles_mrt",
+            "storage_billing_model": "",
+            "terraform_labels": {
+              "env": "dev",
+              "layer": "mart",
+              "project": "santander-cycles"
+            },
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_bigquery_dataset",
+      "name": "raw",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "access": [
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "iam_member": "",
+                "role": "OWNER",
+                "routine": [],
+                "special_group": "",
+                "user_by_email": "terraform@san-cycles-data-pipe.iam.gserviceaccount.com",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "iam_member": "",
+                "role": "OWNER",
+                "routine": [],
+                "special_group": "projectOwners",
+                "user_by_email": "",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "iam_member": "",
+                "role": "READER",
+                "routine": [],
+                "special_group": "projectReaders",
+                "user_by_email": "",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "iam_member": "",
+                "role": "WRITER",
+                "routine": [],
+                "special_group": "projectWriters",
+                "user_by_email": "",
+                "view": []
+              }
+            ],
+            "creation_time": 1774792613925,
+            "dataset_id": "san_cycles_raw",
+            "default_collation": "",
+            "default_encryption_configuration": [],
+            "default_partition_expiration_ms": 0,
+            "default_table_expiration_ms": 0,
+            "delete_contents_on_destroy": true,
+            "description": "Raw ingested CSV data from TfL",
+            "effective_labels": {
+              "env": "dev",
+              "layer": "raw",
+              "project": "santander-cycles"
+            },
+            "etag": "PQSRB0J/lk9VMWdIieuU5Q==",
+            "external_dataset_reference": [],
+            "friendly_name": "Santander Cycles - Raw",
+            "id": "projects/san-cycles-data-pipe/datasets/san_cycles_raw",
+            "is_case_insensitive": false,
+            "labels": {
+              "env": "dev",
+              "layer": "raw",
+              "project": "santander-cycles"
+            },
+            "last_modified_time": 1774792613925,
+            "location": "asia-southeast1",
+            "max_time_travel_hours": "168",
+            "project": "san-cycles-data-pipe",
+            "resource_tags": null,
+            "self_link": "https://bigquery.googleapis.com/bigquery/v2/projects/san-cycles-data-pipe/datasets/san_cycles_raw",
+            "storage_billing_model": "",
+            "terraform_labels": {
+              "env": "dev",
+              "layer": "raw",
+              "project": "santander-cycles"
+            },
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_bigquery_dataset",
+      "name": "staging",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "access": [
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "iam_member": "",
+                "role": "OWNER",
+                "routine": [],
+                "special_group": "",
+                "user_by_email": "terraform@san-cycles-data-pipe.iam.gserviceaccount.com",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "iam_member": "",
+                "role": "OWNER",
+                "routine": [],
+                "special_group": "projectOwners",
+                "user_by_email": "",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "iam_member": "",
+                "role": "READER",
+                "routine": [],
+                "special_group": "projectReaders",
+                "user_by_email": "",
+                "view": []
+              },
+              {
+                "dataset": [],
+                "domain": "",
+                "group_by_email": "",
+                "iam_member": "",
+                "role": "WRITER",
+                "routine": [],
+                "special_group": "projectWriters",
+                "user_by_email": "",
+                "view": []
+              }
+            ],
+            "creation_time": 1774792613920,
+            "dataset_id": "san_cycles_stg",
+            "default_collation": "",
+            "default_encryption_configuration": [],
+            "default_partition_expiration_ms": 0,
+            "default_table_expiration_ms": 0,
+            "delete_contents_on_destroy": true,
+            "description": "Cleaned and typed dbt stg_ models",
+            "effective_labels": {
+              "env": "dev",
+              "layer": "staging",
+              "project": "santander-cycles"
+            },
+            "etag": "2IoW5u4mUdogik5RqmAwfA==",
+            "external_dataset_reference": [],
+            "friendly_name": "Santander Cycles - Staging",
+            "id": "projects/san-cycles-data-pipe/datasets/san_cycles_stg",
+            "is_case_insensitive": false,
+            "labels": {
+              "env": "dev",
+              "layer": "staging",
+              "project": "santander-cycles"
+            },
+            "last_modified_time": 1774792613920,
+            "location": "asia-southeast1",
+            "max_time_travel_hours": "168",
+            "project": "san-cycles-data-pipe",
+            "resource_tags": null,
+            "self_link": "https://bigquery.googleapis.com/bigquery/v2/projects/san-cycles-data-pipe/datasets/san_cycles_stg",
+            "storage_billing_model": "",
+            "terraform_labels": {
+              "env": "dev",
+              "layer": "staging",
+              "project": "santander-cycles"
+            },
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_bigquery_table",
+      "name": "journeys_raw",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "allow_resource_tags_on_deletion": false,
+            "clustering": [
+              "start_station_id"
+            ],
+            "creation_time": 1774792616276,
+            "dataset_id": "san_cycles_raw",
+            "deletion_protection": false,
+            "description": "",
+            "effective_labels": {
+              "layer": "raw",
+              "project": "santander-cycles"
+            },
+            "encryption_configuration": [],
+            "etag": "sww92lHNZS2s+QnRt95E9Q==",
+            "expiration_time": 0,
+            "external_data_configuration": [],
+            "friendly_name": "",
+            "id": "projects/san-cycles-data-pipe/datasets/san_cycles_raw/tables/journeys_raw",
+            "labels": {
+              "layer": "raw",
+              "project": "santander-cycles"
+            },
+            "last_modified_time": 1774792616330,
+            "location": "asia-southeast1",
+            "materialized_view": [],
+            "max_staleness": "",
+            "num_bytes": 0,
+            "num_long_term_bytes": 0,
+            "num_rows": 0,
+            "project": "san-cycles-data-pipe",
+            "range_partitioning": [],
+            "require_partition_filter": false,
+            "resource_tags": null,
+            "schema": "[{\"mode\":\"NULLABLE\",\"name\":\"rental_id\",\"type\":\"INTEGER\"},{\"mode\":\"NULLABLE\",\"name\":\"duration\",\"type\":\"INTEGER\"},{\"mode\":\"NULLABLE\",\"name\":\"bike_id\",\"type\":\"INTEGER\"},{\"mode\":\"NULLABLE\",\"name\":\"end_date\",\"type\":\"TIMESTAMP\"},{\"mode\":\"NULLABLE\",\"name\":\"end_station_id\",\"type\":\"INTEGER\"},{\"mode\":\"NULLABLE\",\"name\":\"end_station_name\",\"type\":\"STRING\"},{\"mode\":\"NULLABLE\",\"name\":\"start_date\",\"type\":\"TIMESTAMP\"},{\"mode\":\"NULLABLE\",\"name\":\"start_station_id\",\"type\":\"INTEGER\"},{\"mode\":\"NULLABLE\",\"name\":\"start_station_name\",\"type\":\"STRING\"},{\"mode\":\"NULLABLE\",\"name\":\"end_station_priority_id\",\"type\":\"INTEGER\"},{\"mode\":\"NULLABLE\",\"name\":\"_source_file\",\"type\":\"STRING\"},{\"mode\":\"NULLABLE\",\"name\":\"_ingested_at\",\"type\":\"TIMESTAMP\"}]",
+            "self_link": "https://bigquery.googleapis.com/bigquery/v2/projects/san-cycles-data-pipe/datasets/san_cycles_raw/tables/journeys_raw",
+            "table_constraints": [],
+            "table_id": "journeys_raw",
+            "table_replication_info": [],
+            "terraform_labels": {
+              "layer": "raw",
+              "project": "santander-cycles"
+            },
+            "time_partitioning": [
+              {
+                "expiration_ms": 0,
+                "field": "start_date",
+                "require_partition_filter": false,
+                "type": "MONTH"
+              }
+            ],
+            "type": "TABLE",
+            "view": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "google_bigquery_dataset.raw"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "sa_bq_admin",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "condition": [],
+            "etag": "BwZOKhx8Qqk=",
+            "id": "san-cycles-data-pipe/roles/bigquery.admin/serviceAccount:santander-cycles-pipeline@san-cycles-data-pipe.iam.gserviceaccount.com",
+            "member": "serviceAccount:santander-cycles-pipeline@san-cycles-data-pipe.iam.gserviceaccount.com",
+            "project": "san-cycles-data-pipe",
+            "role": "roles/bigquery.admin"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "google_service_account.pipeline_sa"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "sa_gcs_admin",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "condition": [],
+            "etag": "BwZOKhx8Qqk=",
+            "id": "san-cycles-data-pipe/roles/storage.admin/serviceAccount:santander-cycles-pipeline@san-cycles-data-pipe.iam.gserviceaccount.com",
+            "member": "serviceAccount:santander-cycles-pipeline@san-cycles-data-pipe.iam.gserviceaccount.com",
+            "project": "san-cycles-data-pipe",
+            "role": "roles/storage.admin"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "google_service_account.pipeline_sa"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_service_account",
+      "name": "pipeline_sa",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "account_id": "santander-cycles-pipeline",
+            "create_ignore_already_exists": null,
+            "description": "",
+            "disabled": false,
+            "display_name": "Santander Cycles Pipeline SA",
+            "email": "santander-cycles-pipeline@san-cycles-data-pipe.iam.gserviceaccount.com",
+            "id": "projects/san-cycles-data-pipe/serviceAccounts/santander-cycles-pipeline@san-cycles-data-pipe.iam.gserviceaccount.com",
+            "member": "serviceAccount:santander-cycles-pipeline@san-cycles-data-pipe.iam.gserviceaccount.com",
+            "name": "projects/san-cycles-data-pipe/serviceAccounts/santander-cycles-pipeline@san-cycles-data-pipe.iam.gserviceaccount.com",
+            "project": "san-cycles-data-pipe",
+            "timeouts": null,
+            "unique_id": "106819589395772604284"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDB9fQ=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_service_account_key",
+      "name": "pipeline_sa_key",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "projects/san-cycles-data-pipe/serviceAccounts/santander-cycles-pipeline@san-cycles-data-pipe.iam.gserviceaccount.com/keys/fc9e2ce9d879371c4a9a78098f5e5d40c71262d8",
+            "keepers": null,
+            "key_algorithm": "KEY_ALG_RSA_2048",
+            "name": "projects/san-cycles-data-pipe/serviceAccounts/santander-cycles-pipeline@san-cycles-data-pipe.iam.gserviceaccount.com/keys/fc9e2ce9d879371c4a9a78098f5e5d40c71262d8",
+            "private_key": "ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiAgInByb2plY3RfaWQiOiAic2FuLWN5Y2xlcy1kYXRhLXBpcGUiLAogICJwcml2YXRlX2tleV9pZCI6ICJmYzllMmNlOWQ4NzkzNzFjNGE5YTc4MDk4ZjVlNWQ0MGM3MTI2MmQ4IiwKICAicHJpdmF0ZV9rZXkiOiAiLS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tXG5NSUlFdndJQkFEQU5CZ2txaGtpRzl3MEJBUUVGQUFTQ0JLa3dnZ1NsQWdFQUFvSUJBUURkZTRUcEhKbnhVMjZEXG5FVm1wTzhRdjNkY0VJK3kyQU9JYmFjUmVWL0NpWldZSndHZjdjZEtVWlZsa2RKbFN1c2tnbWNoeE1xZndrVmtNXG5Wc1pMRnkyRWFDZjJ6Zy8rd0UwZjZ2NkdsQlBpUXA3TU9hMFExcS94NTl2VmdyMUY0TWRmRVJka25iaityU1dmXG5uU1M4cnR0Q0hacmdoU2ZTNmxWb2pZM3RVRFdhRldqN3VwYStvY0ZzZzdFSzY3RFNPTWtDd05nYjBaMU1Ra2Y5XG5VdGIyc01yakhoVHhVQUdxT0hXbFF3T0x0aFg4dm9pdmhJOVFxOU5DemRPWnpBeXY1dVZZeDJ2U2FoZWszSUpMXG5xeWZoVERBMXRaTk5RMFZlbXhxNmhreGduY0puby9oRjlSd08yQlNjcFBEQ0ljQ3BRZHVPQnRoNGNSbExSa0IvXG5BdVpEalg1TEFnTUJBQUVDZ2dFQUg2S3lCRjRLZXhid3RSWDRXWnpvMC9GNjhlTnp2emQzRkhWU0VDdTllbVREXG5ZMmN4TXhBNkJPcEpEM2s4SVQzKzFvSkF5REoxSEg2V1dwWFdjd2xYZmc4bWpqRTJ4YXVRR0p3SFNRL0RtMURxXG52NzhKUWx0My9EU2pDT2RJdzc5c210NmxHY0VSbUljQTFjQ3JhNndLTTNKcEdlTExJbXhJVU12UFZ2TmJCS3dBXG5Ld3R6U0lscW9mS01lSzRzN2ZYekpUemJuTWdaejlOYW5jODJaZEU4UUQ5cG9uVDhQUXdoUFllNWF0NTNWVFFxXG5wUkpSelhTbUI4TmtPTytBY0t4MlBuK0llK0luOHB0R2MwOGsxekRQM0U2bFZIcUloN21VZmxhTWZKZUJDS3ZqXG5uMzhkUHM4dWhxK2Ivd290NjdRdHM0L0hoRFZ5a1h4S0hPKy9oMHZhNlFLQmdRRDB6Yy9iT0RBYmtmSk5iZ1o3XG5yZnhUcVhPZXkrSmlJd0t2ZDg4bGZrTEJSSlZVSitVSEFyZEs0RjFQYkRBOUtBQ0lzY25VVGRMS1ppaGlMekI2XG5zQkhMQmZhaW1INEJwMTdlSWdnSk44QlMwcWFWa1A1UE5qc2xsUEdMdXdoYmtONzhRbHVHc2UvQ1NUcVJ3Z1VnXG5vUm4rQ01UdjVtS1VBQUowVFRJVHZoeUwvUUtCZ1FEbm5LaEw1SndQS0xqZUVaaklMM095akNQODZWV2htMTF5XG5lZ2g4c0YyU2ovZVlnZW9nUVprQmw5UmQ0Vlo1d0xYTXcwTHNyaXJtVm96R3BsQ1p1K0JtUzhRWTU4NjRJOXB1XG5CcVM2cTdCZlQ4ckU0R1l3UTV3a3U5TzlGbmx2ZWRoQm9WajM1ZWdsK01nOGhsc2RnV0p1dmk2TFY5eTZHcGNVXG43c3B3Q3FyeDV3S0JnUUNlNnJ4MFl4VlgwSGFyTFRHb09Gb0ZOWXVKR25Icm95NnJHZXV2T3plNm52c1JscFJtXG42S3gwUHhKVDdMZWorOFBjK1EwOGRRalJ1MStiM1daclBzRk9PcURSREkxQUpaYkFQUGRhaElhbFBYcEd2Y2xaXG5RcXRDeWwzRGg3YjFPaWFITzh5T3RCUWcyOGpadGtuOTFKYzdBaFpXWmdpNGF3a3MxckFiZ042blFRS0JnUUM5XG51Qm8zaUh5NUFoOWtjRCtaQXgyZmpLSFNBb1FOUzhtaEF3cytyKzBHSi8ybHBBMVcvTVRMaEVZRjNKWk1SeW5rXG5IN0lMVTZONmFEMEtYNk80T2loWFF3clBaOXB5QlpSZitmc25tWWx3bVZpOEtpQXF1c2NGWkFIT2FzRndLZnVWXG56d2Vra0dPMzd2QitlNFBaU0dtTDB5Y25Kd0o4UTFtc1lPbmNHekRwMHdLQmdRRGVpMWZ2d1IvOXlJM1dRdkhDXG5CQXplbDh1RjJMSkRaYk1sS0NFOWorNDg1UVFWK1lHMUZPZFdSUjg5aGFQYzZvcHo4ZE1RREQ1VzJQVXV0VGNMXG5ZNm5QdklIRDBiUk5KTDNVVmZQN1BSWktXdy9SWmtVR0xyTm5UcjFlekVCbWptTit2cDR0Yk9SSFpoNXp0WW1xXG40SitIeTlyU2laOWpObUpiVVkwbTNWTE5vQT09XG4tLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tXG4iLAogICJjbGllbnRfZW1haWwiOiAic2FudGFuZGVyLWN5Y2xlcy1waXBlbGluZUBzYW4tY3ljbGVzLWRhdGEtcGlwZS5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsCiAgImNsaWVudF9pZCI6ICIxMDY4MTk1ODkzOTU3NzI2MDQyODQiLAogICJhdXRoX3VyaSI6ICJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20vby9vYXV0aDIvYXV0aCIsCiAgInRva2VuX3VyaSI6ICJodHRwczovL29hdXRoMi5nb29nbGVhcGlzLmNvbS90b2tlbiIsCiAgImF1dGhfcHJvdmlkZXJfeDUwOV9jZXJ0X3VybCI6ICJodHRwczovL3d3dy5nb29nbGVhcGlzLmNvbS9vYXV0aDIvdjEvY2VydHMiLAogICJjbGllbnRfeDUwOV9jZXJ0X3VybCI6ICJodHRwczovL3d3dy5nb29nbGVhcGlzLmNvbS9yb2JvdC92MS9tZXRhZGF0YS94NTA5L3NhbnRhbmRlci1jeWNsZXMtcGlwZWxpbmUlNDBzYW4tY3ljbGVzLWRhdGEtcGlwZS5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsCiAgInVuaXZlcnNlX2RvbWFpbiI6ICJnb29nbGVhcGlzLmNvbSIKfQo=",
+            "private_key_type": "TYPE_GOOGLE_CREDENTIALS_FILE",
+            "public_key": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMvRENDQWVTZ0F3SUJBZ0lJQUtMZmNiQjhGRTB3RFFZSktvWklodmNOQVFFRkJRQXdJREVlTUJ3R0ExVUUKQXd3Vk1UQTJPREU1TlRnNU16azFOemN5TmpBME1qZzBNQ0FYRFRJMk1ETXlPVEV6TlRjd09Gb1lEems1T1RreApNak14TWpNMU9UVTVXakFnTVI0d0hBWURWUVFEREJVeE1EWTRNVGsxT0Rrek9UVTNOekkyTURReU9EUXdnZ0VpCk1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLQW9JQkFRRGRlNFRwSEpueFUyNkRFVm1wTzhRdjNkY0UKSSt5MkFPSWJhY1JlVi9DaVpXWUp3R2Y3Y2RLVVpWbGtkSmxTdXNrZ21jaHhNcWZ3a1ZrTVZzWkxGeTJFYUNmMgp6Zy8rd0UwZjZ2NkdsQlBpUXA3TU9hMFExcS94NTl2VmdyMUY0TWRmRVJka25iaityU1dmblNTOHJ0dENIWnJnCmhTZlM2bFZvalkzdFVEV2FGV2o3dXBhK29jRnNnN0VLNjdEU09Na0N3TmdiMFoxTVFrZjlVdGIyc01yakhoVHgKVUFHcU9IV2xRd09MdGhYOHZvaXZoSTlRcTlOQ3pkT1p6QXl2NXVWWXgydlNhaGVrM0lKTHF5ZmhUREExdFpOTgpRMFZlbXhxNmhreGduY0puby9oRjlSd08yQlNjcFBEQ0ljQ3BRZHVPQnRoNGNSbExSa0IvQXVaRGpYNUxBZ01CCkFBR2pPREEyTUF3R0ExVWRFd0VCL3dRQ01BQXdEZ1lEVlIwUEFRSC9CQVFEQWdlQU1CWUdBMVVkSlFFQi93UU0KTUFvR0NDc0dBUVVGQndNQ01BMEdDU3FHU0liM0RRRUJCUVVBQTRJQkFRQ1U1V04rbklqWGpXVExjYVZzREszSgp3OWwyaFA4NzdxYXFPVlpMc0sxL29Gb00zY1FiNFJHblNOVFdOMWduZW90VElHNkt2VGFNckNzTnFuNXNBc0tOCjZxcCtXNFo3MWk4OXphUFR1QTZYTFFOeDhXdGgyR0JmUkxXeW5qenZwUEFFSzcwUS95Vk1MajdJSXJGR0RsWjAKQTY4eTloRFFCTmI0YzBjUzk2ZjBOdjI1YzZOd1RobDZqVGdFSEFaVlNGbzR1TTdqazRWVXNUQUFhTjczMHlxTApKYWdTQ3RjeHhCYnVDYWtzejg3SXpYZTlpVXh1ejJGaWRkNkFFZ1kwcUtLSHZXbjl4N0huZGFGcXhkWnJRaWZoCjlQSGs5alArU256dThqa1R5Wkw0eUozd2lGSWdPMkZJMTFjNEhkYVl5TG1Cb0RTTG5Pd1BFZjlTQWxHcXlQYWgKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=",
+            "public_key_data": null,
+            "public_key_type": "TYPE_X509_PEM_FILE",
+            "service_account_id": "projects/san-cycles-data-pipe/serviceAccounts/santander-cycles-pipeline@san-cycles-data-pipe.iam.gserviceaccount.com",
+            "valid_after": "2026-03-29T13:57:08Z",
+            "valid_before": "9999-12-31T23:59:59Z"
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "private_key"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "google_service_account.pipeline_sa"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_storage_bucket",
+      "name": "gcs_bkt",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 2,
+          "attributes": {
+            "autoclass": [],
+            "cors": [],
+            "custom_placement_config": [],
+            "default_event_based_hold": false,
+            "effective_labels": {
+              "env": "dev",
+              "project": "santander-cycles"
+            },
+            "enable_object_retention": false,
+            "encryption": [],
+            "force_destroy": true,
+            "id": "san-cycles-data-pipe-bkt",
+            "labels": {
+              "env": "dev",
+              "project": "santander-cycles"
+            },
+            "lifecycle_rule": [
+              {
+                "action": [
+                  {
+                    "storage_class": "NEARLINE",
+                    "type": "SetStorageClass"
+                  }
+                ],
+                "condition": [
+                  {
+                    "age": 90,
+                    "created_before": "",
+                    "custom_time_before": "",
+                    "days_since_custom_time": 0,
+                    "days_since_noncurrent_time": 0,
+                    "matches_prefix": [],
+                    "matches_storage_class": [],
+                    "matches_suffix": [],
+                    "no_age": false,
+                    "noncurrent_time_before": "",
+                    "num_newer_versions": 0,
+                    "send_age_if_zero": true,
+                    "send_days_since_custom_time_if_zero": false,
+                    "send_days_since_noncurrent_time_if_zero": false,
+                    "send_num_newer_versions_if_zero": false,
+                    "with_state": "ANY"
+                  }
+                ]
+              }
+            ],
+            "location": "ASIA-SOUTHEAST1",
+            "logging": [],
+            "name": "san-cycles-data-pipe-bkt",
+            "project": "san-cycles-data-pipe",
+            "project_number": 1072434453463,
+            "public_access_prevention": "inherited",
+            "requester_pays": false,
+            "retention_policy": [],
+            "rpo": null,
+            "self_link": "https://www.googleapis.com/storage/v1/b/san-cycles-data-pipe-bkt",
+            "soft_delete_policy": [
+              {
+                "effective_time": "2026-03-29T13:56:55.076Z",
+                "retention_duration_seconds": 604800
+              }
+            ],
+            "storage_class": "STANDARD",
+            "terraform_labels": {
+              "env": "dev",
+              "project": "santander-cycles"
+            },
+            "timeouts": null,
+            "uniform_bucket_level_access": true,
+            "url": "gs://san-cycles-data-pipe-bkt",
+            "versioning": [
+              {
+                "enabled": true
+              }
+            ],
+            "website": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsInJlYWQiOjI0MDAwMDAwMDAwMCwidXBkYXRlIjoyNDAwMDAwMDAwMDB9LCJzY2hlbWFfdmVyc2lvbiI6IjIifQ=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_storage_bucket_object",
+      "name": "processed_folder",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "san-cycles-data-pipe-bkt",
+            "cache_control": "",
+            "content": " ",
+            "content_disposition": "",
+            "content_encoding": "",
+            "content_language": "",
+            "content_type": "text/plain; charset=utf-8",
+            "crc32c": "csDdjw==",
+            "customer_encryption": [],
+            "detect_md5hash": "chXunH2dwinSkhpA6JnsXw==",
+            "event_based_hold": false,
+            "generation": 1774792615492694,
+            "id": "san-cycles-data-pipe-bkt-processed/",
+            "kms_key_name": "",
+            "md5hash": "chXunH2dwinSkhpA6JnsXw==",
+            "media_link": "https://storage.googleapis.com/download/storage/v1/b/san-cycles-data-pipe-bkt/o/processed%2F?generation=1774792615492694\u0026alt=media",
+            "metadata": null,
+            "name": "processed/",
+            "output_name": "processed/",
+            "retention": [],
+            "self_link": "https://www.googleapis.com/storage/v1/b/san-cycles-data-pipe-bkt/o/processed%2F",
+            "source": null,
+            "storage_class": "STANDARD",
+            "temporary_hold": false,
+            "timeouts": null
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "content"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoyNDAwMDAwMDAwMDAsImRlbGV0ZSI6MjQwMDAwMDAwMDAwLCJ1cGRhdGUiOjI0MDAwMDAwMDAwMH19",
+          "dependencies": [
+            "google_storage_bucket.gcs_bkt"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "google_storage_bucket_object",
+      "name": "raw_folder",
+      "provider": "provider[\"registry.terraform.io/hashicorp/google\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "san-cycles-data-pipe-bkt",
+            "cache_control": "",
+            "content": " ",
+            "content_disposition": "",
+            "content_encoding": "",
+            "content_language": "",
+            "content_type": "text/plain; charset=utf-8",
+            "crc32c": "csDdjw==",
+            "customer_encryption": [],
+            "detect_md5hash": "chXunH2dwinSkhpA6JnsXw==",
+            "event_based_hold": false,
+            "generation": 1774792615486308,
+            "id": "san-cycles-data-pipe-bkt-raw/",
+            "kms_key_name": "",
+            "md5hash": "chXunH2dwinSkhpA6JnsXw==",
+            "media_link": "https://storage.googleapis.com/download/storage/v1/b/san-cycles-data-pipe-bkt/o/raw%2F?generation=1774792615486308\u0026alt=media",
+            "metadata": null,
+            "name": "raw/",
+            "output_name": "raw/",
+            "retention": [],
+            "self_link": "https://www.googleapis.com/storage/v1/b/san-cycles-data-pipe-bkt/o/raw%2F",
+            "source": null,
+            "storage_class": "STANDARD",
+            "temporary_hold": false,
+            "timeouts": null
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "content"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoyNDAwMDAwMDAwMDAsImRlbGV0ZSI6MjQwMDAwMDAwMDAwLCJ1cGRhdGUiOjI0MDAwMDAwMDAwMH19",
+          "dependencies": [
+            "google_storage_bucket.gcs_bkt"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

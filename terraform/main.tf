@@ -62,7 +62,7 @@ resource "google_bigquery_dataset" "raw" {
 resource "google_bigquery_dataset" "staging" {
   dataset_id                 = "san_cycles_stg"
   friendly_name              = "Santander Cycles - Staging"
-  description                = "Cleaned and typed dbt stg_ models"
+  description                = "Cleaned and typed staging models"
   location                   = var.location
   delete_contents_on_destroy = true
   labels = { project = "santander-cycles", layer = "staging", env = var.environment }
@@ -78,9 +78,9 @@ resource "google_bigquery_dataset" "mart" {
 }
 
 # BigQuery Raw Table
-resource "google_bigquery_table" "journeys_raw" {
+resource "google_bigquery_table" "journeys" {
   dataset_id          = google_bigquery_dataset.raw.dataset_id
-  table_id            = "journeys_raw"
+  table_id            = "journeys"
   deletion_protection = false
 
   time_partitioning {
@@ -108,6 +108,7 @@ resource "google_bigquery_table" "journeys_raw" {
   labels = { project = "santander-cycles", layer = "raw" }
   depends_on = [google_bigquery_dataset.raw]
 }
+
 
 # Service Account
 resource "google_service_account" "pipeline_sa" {

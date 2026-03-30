@@ -1,5 +1,5 @@
 """ @bruin
-name: san_cycles_raw.journeys_raw
+name: san_cycles_raw.journeys
 type: python
 image: python:.12
 connection: san_cycles
