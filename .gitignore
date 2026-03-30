@@ -2,7 +2,6 @@
 .env
 keys/
 *.json
-!dbt/packages.yml
 
 # Python
 __pycache__/
@@ -11,11 +10,6 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
-
-# dbt
-dbt/target/
-dbt/dbt_packages/
-dbt/logs/
 
 # Terraform
 terraform/.terraform/
@@ -36,3 +30,8 @@ terraform/terraform.tfvars
 logs/runs
 logs/*.log
 *.py[cod]
+
+logs/
+.DS_Store
+.pytest_cache/
+.ruff_cache/
