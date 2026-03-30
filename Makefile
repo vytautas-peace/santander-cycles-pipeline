@@ -121,3 +121,16 @@ lint:  ## Lint Python code
 clean:  ## Remove venv, temp files, dbt artefacts
 	rm -rf .venv /tmp/tfl $(DBT_DIR)/target $(DBT_DIR)/dbt_packages
 	find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+
+# ── Bruin Data Platform ───────────────────────────────────────────────────────
+bruin-ingest:  ## Run ingestion asset
+	@set -a && source .env && set +a && \
+		bruin run bruin/assets/journeys_raw.py --var years="$$YEARS"
+
+bruin-stg:  ## Run staging asset (includes quality checks)
+	@set -a && source .env && set +a && \
+		bruin run bruin/assets/journeys_stg.sql
+
+bruin-run:  ## Run full Bruin pipeline
+	@set -a && source .env && set +a && \
+		bruin run bruin/
