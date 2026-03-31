@@ -174,7 +174,10 @@ make stream-dash        # launch Streamlit dashboard at localhost:8501
 ```
 
 
+
 # BOOM!
+
+
 
 > **Note:** Currently this project is limited to running a few years at a time. Bruin requires a dataframe to be passed after asset executes, and tends to choke on 100M records at once. The pipeline runs best processing up to 5 years at a time due to in-memory DataFrame concatenation. For full historical load, run in batches via `YEARS="[2012,2013,2014,2015]"` etc. Also go ahead and brake it!
 
