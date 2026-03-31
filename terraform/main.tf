@@ -129,7 +129,7 @@ output "gcs_bkt" {
 
 output "bq_ds_ing" {
   description = "BigQuery ingestion dataset ID"
-  value       = google_bigquery_dataset.ing.dataset_id
+  value       = google_bigquery_dataset.ingestion.dataset_id
 }
 
 output "bq_ds_stg" {

@@ -17,7 +17,7 @@ help:  ## Show this help
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
-setup: install-uv install-terraform install-bruin install  ## Full local setup
+setup: install-uv install-bruin install  ## Full local setup
 	@cp -n .env.init .env 2>/dev/null && \
 		echo "Created .env — fill in GCP_PROJECT, LOCATION, TF_VAR_credentials" || \
 		echo ".env already exists"
@@ -33,25 +33,14 @@ install-uv:  ## Install uv if not already installed
 		curl -LsSf https://astral.sh/uv/install.sh | sh; \
 	fi
 
-install-terraform:  ## Install Terraform if not already installed
-	@if which terraform > /dev/null 2>&1; then \
-		echo "terraform already installed: $$(terraform version | head -1)"; \
-	elif [ "$$(uname)" = "Darwin" ]; then \
-		brew install terraform; \
-	else \
-		sudo apt-get update && sudo apt-get install -y gnupg software-properties-common curl && \
-		curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
-		echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $$(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list && \
-		sudo apt-get update && sudo apt-get install -y terraform; \
-	fi
-
 install-bruin:  ## Install Bruin CLI if not already installed
 	@if which bruin > /dev/null 2>&1; then \
 		echo "bruin already installed: $$(bruin --version)"; \
 	elif [ "$$(uname)" = "Darwin" ]; then \
 		brew install bruin-data/tap/bruin; \
 	else \
-		curl -LsSf https://sh.bruin.run | sh; \
+		echo "Installing Bruin..." && \
+		wget -qO- https://getbruin.com/install/cli | sh; \
 	fi
 
 install:  ## Install Python dependencies via uv
