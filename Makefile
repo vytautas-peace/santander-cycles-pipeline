@@ -36,7 +36,7 @@ print(f'Years: {years}'); \
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
 setup: check-uv install  ## Full local setup
-	@cp -n .env.example .env 2>/dev/null && \
+	@cp -n .env.init .env 2>/dev/null && \
 		echo "Created .env — fill in GCP_PROJECT, LOCATION, TF_VAR_credentials" || \
 		echo ".env already exists"
 
