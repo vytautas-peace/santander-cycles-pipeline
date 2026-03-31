@@ -6,9 +6,9 @@ This file is for Claude Code to pick up the project from the root directory.
 
 ## Project Overview
 
-End-to-end data pipeline ingesting TfL Santander Cycles journey data (2012–2026) into BigQuery, with staging transforms and a Streamlit dashboard.
+End-to-end data pipeline ingesting TfL Santander Cycles journey data (2012–2025) into BigQuery, with staging transforms and a Streamlit dashboard.
 
-**Stack:** Terraform (GCP infra) · Bruin (orchestration + ingestion) · BigQuery (raw + staging + mart) · Streamlit (dashboard)
+**Stack:** Terraform (GCP infra) · Bruin (orchestration + ingestion) · BigQuery (ing + stg + mrt layers) · Streamlit (dashboard)
 
 ---
 
@@ -17,6 +17,11 @@ End-to-end data pipeline ingesting TfL Santander Cycles journey data (2012–202
 ```
 santander-cycles-pipeline/
 ├── .env                          # Environment variables (never commit)
+├── .env.init                     # Template — copied to .env on setup
+├── .bruin.yml                    # Bruin connection config (never commit)
+├── .bruin.yml.init               # Template — copied to .bruin.yml on setup
+├── .streamlit/
+│   └── config.toml               # Streamlit theme + toolbar config
 ├── Makefile                      # All runnable commands
 ├── keys/
 │   ├── gcp-sa-key.json           # Pipeline SA key (GOOGLE_APPLICATION_CREDENTIALS)
@@ -28,10 +33,17 @@ santander-cycles-pipeline/
 │   ├── .bruin.yml                # Bruin connection config
 │   ├── pipeline.yml              # Pipeline definition + variables
 │   └── assets/
-│       ├── journeys_raw.py       # Ingestion asset (Python)
-│       └── journeys_stg.py       # Staging asset (SQL)
-└── dashboard/
-    └── app.py                    # Streamlit dashboard
+│       ├── ing_journeys.py       # Ingestion asset (Python) → san_cycles_ing.journeys
+│       ├── stg_journeys.py       # Staging asset (SQL)     → san_cycles_stg.journeys
+│       ├── mrt_dim_stations.py
+│       ├── mrt_fct_journeys.py
+│       ├── mrt_station_stats.py
+│       ├── mrt_bike_stats.py
+│       └── mrt_kpis_monthly.py
+└── streamlit/
+    ├── app.py                    # Streamlit dashboard
+    └── assets/
+        └── santander_logo.svg    # Santander flame logo (extracted from santander.co.uk)
 ```
 
 ---
@@ -39,22 +51,24 @@ santander-cycles-pipeline/
 ## Environment Variables (.env)
 
 ```bash
+# User configuration
 export GCP_PROJECT=san-cycles-data-pipe
-export GCS_BKT=san-cycles-data-pipe-bkt
-export BQ_DS_RAW=san_cycles_raw
-export BQ_TBL_RAW=journeys_raw
+export LOCATION=asia-southeast1
+export YEARS="[2024]"
+export TF_VAR_credentials=../keys/terraform-sa-key.json
+
+# Pre-set — don't change
+export GCS_BKT="${GCP_PROJECT}-bkt"    # derives from GCP_PROJECT
+export BQ_DS_ING=san_cycles_ing
 export BQ_DS_STG=san_cycles_stg
 export BQ_DS_MRT=san_cycles_mrt
-export LOCATION=asia-southeast1
-export YEARS="2024"
+export BQ_TBL_ING=journeys
+
+# Relative path required for Bruin (absolute paths break)
 export GOOGLE_APPLICATION_CREDENTIALS=keys/gcp-sa-key.json
-export TF_VAR_credentials=keys/terraform-sa-key.json
-export TF_VAR_project_id=san-cycles-data-pipe
-export TF_VAR_location=asia-southeast1
-export TF_VAR_environment=dev
 ```
 
-**Important:** All variables must have `export` prefix for Bruin to pick them up. Source with `source .env` before running Bruin commands directly.
+**Important:** All vars must have `export` prefix for Bruin. Source with `source .env` before running Bruin commands directly.
 
 ---
 
@@ -67,9 +81,9 @@ export TF_VAR_environment=dev
 - `terraform@san-cycles-data-pipe.iam.gserviceaccount.com` — Terraform SA. Roles: `bigquery.dataOwner`, `storage.admin`, `iam.serviceAccountAdmin`, `iam.serviceAccountKeyAdmin`, `resourcemanager.projectIamAdmin`
 
 **BigQuery Datasets:**
-- `san_cycles_raw` — raw append-only journey data
+- `san_cycles_ing` — raw append-only journey data (ingestion layer)
 - `san_cycles_stg` — cleaned staging table
-- `san_cycles_mrt` — mart tables (not yet built)
+- `san_cycles_mrt` — mart tables
 
 **GCS Bucket:** `san-cycles-data-pipe-bkt` (asia-southeast1, STANDARD, versioned)
 
@@ -102,10 +116,9 @@ make infra-destroy
 
 ---
 
+## Schema Variants (7 formats across years)
 
-## Schema Variants (9 formats across years)
-
-TfL changed column names multiple times. All are handled via `COLUMN_MAP` in `journeys_raw.py`.
+TfL changed column names multiple times. All handled via `COLUMN_MAP` in `ing_journeys.py`.
 
 | Schema | Key columns |
 |--------|-------------|
@@ -117,23 +130,17 @@ TfL changed column names multiple times. All are handled via `COLUMN_MAP` in `jo
 | 6 | `Number, Start date, Start station, Start station number, End date, End station, End station number, Bike number, Bike model, Total duration, Total duration (ms)` |
 | 7 | `Number, Start date, Start station number, End date, End station, End station number, Start station, Bike number, Bike model, Total duration, Total duration (ms)` |
 
-Schemas 1–4 use `dd/mm/yyyy` or `dd/mm/yyyy hh:mm:ss` date formats. Schemas 5–7 use `yyyy-mm-dd hh:mm` or `yyyy-mm-dd hh:mm:ss`. The key distinctions: schemas 2 and 3 are edge cases in early data where station ID columns are missing or renamed to logical terminal format; schemas 5–7 are the post-2022 new format with bike model and total duration fields, differing only in column order.
+Schemas 1–4 use `dd/mm/yyyy` date formats. Schemas 5–7 are post-2022 with bike model and total duration fields.
 
-**Date formats (4 variants):**
-- `yyyy-mm-dd hh:mm:ss`
-- `yyyy-mm-dd hh:mm`
-- `dd/mm/yyyy hh:mm:ss`
-- `dd/mm/yyyy hh:mm`
-
-All handled by trying each format sequentially with `fillna` chaining in `parse_and_clean`.
+**Date formats (4 variants):** `yyyy-mm-dd hh:mm:ss`, `yyyy-mm-dd hh:mm`, `dd/mm/yyyy hh:mm:ss`, `dd/mm/yyyy hh:mm`
 
 ---
 
-## BigQuery Schema (journeys_raw)
+## BigQuery Schema (san_cycles_ing.journeys)
 
 | Column | Type | Notes |
 |--------|------|-------|
-| `rental_id` | INTEGER | Primary identifier |
+| `rental_id` | INTEGER | |
 | `bike_id` | INTEGER | |
 | `start_station_id` | INTEGER | |
 | `end_station_id` | INTEGER | |
@@ -149,6 +156,8 @@ All handled by trying each format sequentially with `fillna` chaining in `parse_
 | `_ingested_at` | TIMESTAMP | |
 
 Partitioned by `start_date` (MONTH), clustered by `start_station_id`.
+
+**Current data:** 135,364,573 rows covering 2012–2025.
 
 ---
 
@@ -169,37 +178,30 @@ environments:
           service_account_file: ${GOOGLE_APPLICATION_CREDENTIALS}
 ```
 
-**`pipeline.yml` variables:**
-```yaml
-variables:
-  years:
-    type: string
-    default: ""
-```
-
-This variable setting doesn't seem to be working as intended. Setting years="2021 2022 2023", Bruin picked up only the first year. So in reality, an array is being passed.
-
-
 **Running ingestion:**
 ```bash
 # Single year
-bruin run bruin/assets/journeys_raw.py --var years='[2024]'
+bruin run bruin/assets/ing_journeys.py --var years='[2024]'
 
 # Multiple years
-bruin run bruin/assets/journeys_raw.py --var years='[2022,2023,2024]'
+bruin run bruin/assets/ing_journeys.py --var years='[2022,2023,2024]'
 
 # Via Makefile
 make bruin-ingest   # uses YEARS from .env
-make bruin-stg      # runs staging asset
+make bruin-stage    # runs staging asset
+make bruin-marts    # runs all mart assets
+make bruin-run      # full pipeline
 ```
 
 **Year array syntax:** must be JSON array e.g. `'[2023]'` not `"2023"`.
 
 ---
 
-## Ingestion Logic (journeys_raw.py)
+## Ingestion Logic (ing_journeys.py)
 
 **`materialize()` returns a concatenated DataFrame** — Bruin handles BQ loading via ingestr/dlt with `strategy: append`.
+
+The `name: san_cycles_ing.journeys` in the Bruin header determines the BQ write target — not the `BQ_DS_ING`/`BQ_TBL_ING` env vars (those are used if the Python code queries BQ directly).
 
 **Key business logic:**
 - Reads all CSVs as `dtype=str` first, then casts explicitly
@@ -212,91 +214,90 @@ make bruin-stg      # runs staging asset
 
 ---
 
-## Staging Logic (journeys_stg.py) (work in progress)
+## Staging Logic (stg_journeys.py)
 
 **Type:** `bq.sql`, `strategy: create+replace`
-**Depends on:** `san_cycles_raw.journeys_raw`
+**Depends on:** `san_cycles_ing.journeys`
 
 **Transforms:**
 - `TIMESTAMP_TRUNC` on dates
-- Derived fields: `ride_date`, `ride_month`, `start_hour`, `start_day_of_week`, `is_round_trip`
+- Derived fields: `ride_date`, `journey_month`, `start_hour`, `start_day_of_week`, `is_round_trip`
 - `QUALIFY ROW_NUMBER()` deduplication (keep latest `_ingested_at` per `rental_id`)
+- Backfills missing `start_station_id` / `end_station_id` via name→id lookup built from all rows where both fields are present
 - Filters: `start_date IS NOT NULL`, `end_date IS NOT NULL`, `duration IS NOT NULL`, `duration > 0`
+- Drops 1,173 pre-2012 rows (erroneous 1901–1902 timestamps)
+- Drops 16 journeys with no end location at all
 
 **Quality checks:**
 - `rental_id`: not_null, unique
 - `start_date_utc`: not_null
 - `duration_seconds`: not_null, positive
-- `start_station_id`: not_null ⚠️ currently failing (~229k nulls from pre-fix 2016 ingestion)
-- `end_station_id`: not_null ⚠️ currently failing (~543k nulls from pre-fix 2016/2022 ingestion)
+- `start_station_id`: not_null
+- `end_station_id`: not_null
 
 ---
 
-## Data Status
+## Mart Assets
 
-Currently ingesting 2021-2025.
+All in `san_cycles_mrt`. Depend on `san_cycles_stg.journeys`.
 
-The last time data was in BigQuery, it showed up like this:
-
-| Year | Raw Status | Notes |
-|------|------------|-------|
-| 2012 | ✅ | |
-| 2013 | ✅ | |
-| 2014 | ✅ | |
-| 2015 | ✅ | |
-| 2016 | ⚠️ | Re-ingested but 229k null start_station_id remain from pre-fix rows |
-| 2017 | ⚠️ | Some null end_station_id from boundary files |
-| 2018–2021 | ✅ | |
-| 2022 | ⚠️ | 312k null end_station_id in file 325 (schema transition) |
-| 2023 | ✅ | Re-ingested with 4-format date parser |
-| 2024–2025 | ✅ | |
-
-**Pending:** 323,991 rows with null `start_date` in raw — source files not yet identified. Run:
-```sql
-SELECT _source_file, COUNT(*) as n
-FROM `san-cycles-data-pipe.san_cycles_raw.journeys_raw`
-WHERE start_date IS NULL
-GROUP BY 1 ORDER BY n DESC LIMIT 10
-```
-
-**Root cause of most nulls:** rows with null `start_date` survived the year-based DELETE because `DATE_TRUNC(NULL, YEAR)` returns NULL, not the target year.
-
-After this, the journeys_raw table was truncated for fresh ingestion.
+| Asset | Description |
+|-------|-------------|
+| `mrt_dim_stations.py` | Dimension of all known stations; most-used name per station_id |
+| `mrt_fct_journeys.py` | Fact table of all journeys |
+| `mrt_station_stats.py` | Monthly station-level pickups + dropoffs |
+| `mrt_bike_stats.py` | Per-bike ride counts and duration by month |
+| `mrt_kpis_monthly.py` | Monthly KPIs: total rides, top station, top bike, longest ride |
 
 ---
 
-## Next Steps
+## Streamlit Dashboard
 
-1. **Work through any ingestion issues** until all years flush out error-free into BQ dataset.
-2. **Re-ingest some data** to start workinng on journeys_stg
-3. **Get staging to 7/7 checks passing**
-4. **Build mart assets** — equivalent to: `fct_rides`, `dim_stations`, `monthly_summary`, `station_stats`, `bike_stats`, `yearly_stats`
-5. **Update Streamlit dashboard** to read from `san_cycles_mrt`
-6. **Schedule** weekly Bruin run for new TfL files
-7. **Run the pipeline in GCP VM** to trouble-shoot fresh install / deployment issues. I need the project to run smoothly so that it works for fellow data engineers in the course.
+**Run:** `make stream-dash`
+
+**Config:** `.streamlit/config.toml` — light theme, Santander red primary, `toolbarMode = "viewer"` (hides Deploy button)
+
+**Tile 1 — Most loved bike of the year:** year selector, top bike by ride count with total rides + hours metrics
+
+**Tile 2 — Rides by season:** stacked bar chart, years on x-axis, trips on y-axis, stacked Winter/Autumn/Summer/Spring bottom to top
+
+Logo: official Santander flame path extracted from santander.co.uk SVG, embedded as base64 inline.
 
 ---
 
 ## Makefile Commands
 
 ```bash
+make setup             # Install uv, terraform, bruin + Python deps + copy init files
+make install-uv        # Install uv
+make install-terraform # Install Terraform
+make install-bruin     # Install Bruin CLI
 make infra-plan        # Terraform plan
 make infra-apply       # Terraform apply
 make infra-destroy     # Terraform destroy
 make bruin-ingest      # Run ingestion (uses YEARS from .env)
-make bruin-stg         # Run staging asset
+make bruin-stage       # Run staging asset
+make bruin-marts       # Run all mart assets
 make bruin-run         # Run full pipeline
 make stream-dash       # Launch Streamlit dashboard
+make clean             # Remove .venv and /tmp/tfl cache
 ```
 
 ---
 
 ## Known Issues / Gotchas
 
-- **Bruin doesn't expand env vars from `.env`** — must `source .env` first or use `export` prefix on all vars.
+- **Bruin doesn't expand env vars from `.env`** — must `source .env` first or use `export` prefix on all vars
 - **`GOOGLE_APPLICATION_CREDENTIALS` must be relative path** for Bruin (`keys/gcp-sa-key.json` not absolute)
 - **Terraform uses absolute path** for credentials via `TF_VAR_credentials`
 - **`Int64` dtype breaks Arrow serialization** — `_dataframe_for_bruin_upload()` converts to `int64` with `fillna(0)`
 - **Cross-year files** (e.g. `38JourneyDataExtract28Dec2016-03Jan2017.csv`) appear in both 2016 zip and 2017 CSV run — staging deduplication handles this
 - **File 335 onwards (Sep 2022)** uses new schema with `Number`, `Start date`, `Total duration (ms)` etc.
-- **`duration_matches_timestamps` quality check** references wrong table name in SQL — needs fixing to `san_cycles_stg.journeys_stg`
+
+---
+
+## Next Steps
+
+1. **Get staging to 5/5 checks passing** — re-ingest problem years and verify null counts are resolved
+2. **GCP VM deployment** — test fresh `make setup` on a Linux e2-highmem-4 VM for reproducibility
+3. **Schedule** weekly Bruin run for new TfL files (Cloud Scheduler or cron)

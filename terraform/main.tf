@@ -37,26 +37,15 @@ resource "google_storage_bucket" "gcs_bkt" {
   labels = { project = "santander-cycles", env = var.environment }
 }
 
-resource "google_storage_bucket_object" "raw_folder" {
-  name    = "raw/"
-  bucket  = google_storage_bucket.gcs_bkt.name
-  content = " "
-}
-
-resource "google_storage_bucket_object" "processed_folder" {
-  name    = "processed/"
-  bucket  = google_storage_bucket.gcs_bkt.name
-  content = " "
-}
 
 # BigQuery Datasets
-resource "google_bigquery_dataset" "raw" {
-  dataset_id                 = "san_cycles_raw"
-  friendly_name              = "Santander Cycles - Raw"
-  description                = "Raw ingested CSV data from TfL"
+resource "google_bigquery_dataset" "ingestion" {
+  dataset_id                 = "san_cycles_ing"
+  friendly_name              = "Santander Cycles - Ingestion"
+  description                = "Ingested CSV data from TfL"
   location                   = var.location
   delete_contents_on_destroy = true
-  labels = { project = "santander-cycles", layer = "raw", env = var.environment }
+  labels = { project = "santander-cycles", layer = "ing", env = var.environment }
 }
 
 resource "google_bigquery_dataset" "staging" {
@@ -77,9 +66,9 @@ resource "google_bigquery_dataset" "mart" {
   labels = { project = "santander-cycles", layer = "mart", env = var.environment }
 }
 
-# BigQuery Raw Table
-resource "google_bigquery_table" "journeys" {
-  dataset_id          = google_bigquery_dataset.raw.dataset_id
+# BigQuery Ingestion Table
+resource "google_bigquery_table" "ing_journeys" {
+  dataset_id          = google_bigquery_dataset.ingestion.dataset_id
   table_id            = "journeys"
   deletion_protection = false
 
@@ -105,8 +94,8 @@ resource "google_bigquery_table" "journeys" {
     { name = "_ingested_at",     type = "TIMESTAMP", mode = "NULLABLE" }
   ])
 
-  labels = { project = "santander-cycles", layer = "raw" }
-  depends_on = [google_bigquery_dataset.raw]
+  labels = { project = "santander-cycles", layer = "ing" }
+  depends_on = [google_bigquery_dataset.ingestion]
 }
 
 
@@ -138,9 +127,9 @@ output "gcs_bkt" {
   value       = google_storage_bucket.gcs_bkt.name
 }
 
-output "bq_ds_raw" {
-  description = "BigQuery raw dataset ID"
-  value       = google_bigquery_dataset.raw.dataset_id 
+output "bq_ds_ing" {
+  description = "BigQuery ingestion dataset ID"
+  value       = google_bigquery_dataset.ing.dataset_id
 }
 
 output "bq_ds_stg" {

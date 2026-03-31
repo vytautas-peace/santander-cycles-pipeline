@@ -5,7 +5,6 @@ type: bq.sql
 
 depends:
   - san_cycles_stg.journeys
-  - san_cycles_stg.bikepoints
 
 materialization:
   type: table
@@ -17,9 +16,6 @@ description: |
   Dimension table of all known docking stations derived from journey history.
   Most frequently used name per station_id is picked to handle minor name
   changes over the years.
-  Borough is joined from stg.bikepoints (TfL BikePoint API + reverse geocoding).
-  Note: station IDs have changed over the years — some historical IDs will not
-  match the current TfL API and will have a NULL borough.
 
 columns:
   - name: station_id
@@ -29,8 +25,6 @@ columns:
       - name: unique
   - name: station_name
     description: Most common name for this station across all journeys
-  - name: borough
-    description: London borough (NULL for historical IDs not in current TfL API)
 
 @bruin */
 
@@ -69,8 +63,6 @@ stations AS (
 )
 
 SELECT
-    s.station_id,
-    s.station_name,
-    b.borough
-FROM stations s
-LEFT JOIN san_cycles_stg.bikepoints b ON s.station_id = b.station_id
+    station_id,
+    station_name
+FROM stations

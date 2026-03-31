@@ -1,5 +1,5 @@
 """ @bruin
-name: san_cycles_raw.journeys
+name: san_cycles_ing.journeys
 type: python
 image: python:.12
 connection: san_cycles
@@ -61,8 +61,8 @@ TFL_BASE_URL = "https://cycling.data.tfl.gov.uk"
 TFL_S3_URL   = "https://s3-eu-west-1.amazonaws.com/cycling.data.tfl.gov.uk"
 GCP_PROJECT  = os.environ["GCP_PROJECT"]
 GCS_BUCKET   = os.environ["GCS_BKT"]
-BQ_DATASET   = os.environ["BQ_DS_RAW"]
-BQ_TABLE     = os.environ["BQ_TBL_RAW"]
+BQ_DATASET   = os.environ["BQ_DS_ING"]
+BQ_TABLE     = os.environ["BQ_TBL_ING"]
 TMP_DIR      = "/tmp/tfl"
 
 ZIP_YEARS = {

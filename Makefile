@@ -2,10 +2,10 @@ SHELL := /bin/bash
 
 # Santander Cycles Data Pipeline – Makefile
 # ==========================================
-# Prerequisites: gcloud CLI, terraform, bruin, uv
-# Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh
+# Prerequisites: gcloud CLI (install manually)
+# Run `make setup` to install terraform, bruin, uv, and Python dependencies
 
-.PHONY: help setup install check-uv check-years \
+.PHONY: help setup install install-uv install-terraform install-bruin check-years \
         infra-plan infra-apply infra-destroy \
         bruin-ingest bruin-stg bruin-mrt bruin-run \
         stream-dash clean
@@ -17,16 +17,44 @@ help:  ## Show this help
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
-setup: check-uv install  ## Full local setup
+setup: install-uv install-terraform install-bruin install  ## Full local setup
 	@cp -n .env.init .env 2>/dev/null && \
 		echo "Created .env — fill in GCP_PROJECT, LOCATION, TF_VAR_credentials" || \
 		echo ".env already exists"
+	@cp -n .bruin.yml.init .bruin.yml 2>/dev/null && \
+		echo "Created .bruin.yml" || \
+		echo ".bruin.yml already exists"
 
-check-uv:
-	@which uv > /dev/null 2>&1 || \
-		(echo "uv not found. Install: curl -LsSf https://astral.sh/uv/install.sh | sh" && exit 1)
+install-uv:  ## Install uv if not already installed
+	@if which uv > /dev/null 2>&1; then \
+		echo "uv already installed: $$(uv --version)"; \
+	else \
+		echo "Installing uv..." && \
+		curl -LsSf https://astral.sh/uv/install.sh | sh; \
+	fi
 
-install:  ## Install all dependencies via uv
+install-terraform:  ## Install Terraform if not already installed
+	@if which terraform > /dev/null 2>&1; then \
+		echo "terraform already installed: $$(terraform version | head -1)"; \
+	elif [ "$$(uname)" = "Darwin" ]; then \
+		brew install terraform; \
+	else \
+		sudo apt-get update && sudo apt-get install -y gnupg software-properties-common curl && \
+		curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
+		echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $$(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list && \
+		sudo apt-get update && sudo apt-get install -y terraform; \
+	fi
+
+install-bruin:  ## Install Bruin CLI if not already installed
+	@if which bruin > /dev/null 2>&1; then \
+		echo "bruin already installed: $$(bruin --version)"; \
+	elif [ "$$(uname)" = "Darwin" ]; then \
+		brew install bruin-data/tap/bruin; \
+	else \
+		curl -LsSf https://sh.bruin.run | sh; \
+	fi
+
+install:  ## Install Python dependencies via uv
 	uv sync
 
 # ── Infrastructure ────────────────────────────────────────────────────────────
@@ -57,15 +85,15 @@ infra-destroy:  ## Destroy all GCP resources
 		cd $(TF_DIR) && terraform destroy
 
 # ── Bruin Pipeline ────────────────────────────────────────────────────────────
-bruin-ingest:  ## Run raw ingestion asset (uses YEARS from .env)
+bruin-ingest:  ## Run ingestion asset (uses YEARS from .env)
 	@set -a && source .env && set +a && \
-		bruin run bruin/assets/raw_journeys.py --var years=$$YEARS
+		bruin run bruin/assets/ing_journeys.py --var years=$$YEARS
 
-bruin-stg:  ## Run staging asset (includes quality checks)
+bruin-stage:  ## Run staging asset (includes quality checks)
 	@set -a && source .env && set +a && \
 		bruin run bruin/assets/stg_journeys.py
 
-bruin-mrt:  ## Run all mart assets
+bruin-marts:  ## Run all mart assets
 	@set -a && source .env && set +a && \
 		bruin run bruin/assets/mrt_dim_stations.py && \
 		bruin run bruin/assets/mrt_fct_journeys.py && \
@@ -73,14 +101,9 @@ bruin-mrt:  ## Run all mart assets
 		bruin run bruin/assets/mrt_bike_stats.py && \
 		bruin run bruin/assets/mrt_kpis_monthly.py
 
-bruin-bikepoints:  ## Fetch TfL station/borough data (run once, or to pick up new stations)
-	@set -a && source .env && set +a && \
-		bruin run bruin/assets/raw_bikepoints.py && \
-		bruin run bruin/assets/stg_bikepoints.py
-
 bruin-run:  ## Run full pipeline (ingest → stg → mrt)
 	@set -a && source .env && set +a && \
-		bruin run bruin/
+		bruin run bruin/ --var years=$$YEARS
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 stream-dash:  ## Start Streamlit dashboard (opens at localhost:8501)

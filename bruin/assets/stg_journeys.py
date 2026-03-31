@@ -4,7 +4,7 @@ name: san_cycles_stg.journeys
 type: bq.sql
 
 depends:
-  - san_cycles_raw.journeys
+  - san_cycles_ing.journeys
 
 materialization:
   type: table
@@ -63,7 +63,7 @@ quality:
 
 
 WITH source AS (
-    SELECT * FROM san_cycles_raw.journeys
+    SELECT * FROM san_cycles_ing.journeys
 ),
 
 -- Build name→id lookups from all rows where both fields are present.

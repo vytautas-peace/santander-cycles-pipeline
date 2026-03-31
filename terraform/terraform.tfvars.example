@@ -1,4 +1,0 @@
-project_id  = "my-gcp-project-123"
-region      = "EU"
-bq_location = "EU"
-environment = "dev"
