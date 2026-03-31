@@ -339,7 +339,12 @@ def parse_and_clean(local_path: str, source_filename: str) -> pd.DataFrame:
 def materialize():
     bruin_vars = json.loads(os.environ.get("BRUIN_VARS", "{}"))
     years_raw = bruin_vars.get("years") or os.environ.get("YEARS")
-    years = json.loads(years_raw) if years_raw else None
+    if isinstance(years_raw, list):
+        years = years_raw
+    elif years_raw:
+        years = json.loads(years_raw)
+    else:
+        years = None
     
     year_str = "all" if years is None else str(years)
     print(f"Starting ingestion — years: {year_str}")

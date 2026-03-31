@@ -8,4 +8,4 @@ default_connections:
 variables:
   years:
     type: string
-    default: "[2023,2024,2025]"
+    default: ""

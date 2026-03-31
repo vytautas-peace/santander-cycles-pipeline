@@ -28,10 +28,10 @@ This pipeline shows the beauty of data engineering by:
 ## Architecture
 
 ```
-TfL Website          Orchestration        Warehouse                  Dashboard
-───────────          ─────────────        ─────────                  ─────────
+TfL Website          Orchestration            Warehouse                  Dashboard
+───────────          ─────────────            ─────────                  ─────────
 CSV / zip    ──►     Bruin (Python/SQL) ──►   BigQuery                   Streamlit
-(weekly)             append strategy      ing → stg → mrt    ──►    (local)
+(weekly)             append strategy          ing → stg → mrt    ──►     (local)
 ```
 
 **Stack:**
@@ -182,6 +182,11 @@ make clean             # Remove .venv and /tmp/tfl cache
 ---
 
 ## Data Model
+
+Bruin lineage:
+
+![Pipeline Lineage](docs/lineage.png)
+
 
 Three BigQuery layers:
 
