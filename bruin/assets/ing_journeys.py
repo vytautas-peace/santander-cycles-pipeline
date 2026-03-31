@@ -48,7 +48,6 @@ import re
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 import pyarrow as pa
@@ -337,39 +336,10 @@ def parse_and_clean(local_path: str, source_filename: str) -> pd.DataFrame:
 
 # ── Entry point ────────────────────────────────────────────────────────────────
 
-def _parse_years(value: Any) -> list[int] | None:
-    if value is None:
-        return None
-
-    # Bruin vars are delivered via BRUIN_VARS JSON; value can be str/int/list.
-    if isinstance(value, list):
-        years = [int(v) for v in value if str(v).strip() != ""]
-        return years or None
-
-    raw = str(value).strip()
-    if raw == "":
-        return None
-
-    # Allow JSON array passed as a string, e.g. "[2012,2013,2014]"
-    if raw.startswith("[") and raw.endswith("]"):
-        try:
-            parsed = json.loads(raw)
-            if isinstance(parsed, list):
-                years = [int(v) for v in parsed if str(v).strip() != ""]
-                return years or None
-        except Exception:
-            pass
-
-    # Accept comma and/or whitespace separated values: "2012 2013" or "2012,2013"
-    parts = [p for p in re.split(r"[,\s]+", raw) if p]
-    years = [int(p) for p in parts]
-    return years or None
-
-
 def materialize():
     bruin_vars = json.loads(os.environ.get("BRUIN_VARS", "{}"))
-    years_raw = bruin_vars.get("years")
-    years = _parse_years(years_raw)
+    years_raw = bruin_vars.get("years") or os.environ.get("YEARS")
+    years = json.loads(years_raw) if years_raw else None
     
     year_str = "all" if years is None else str(years)
     print(f"Starting ingestion — years: {year_str}")
@@ -393,5 +363,9 @@ def materialize():
 
     print(f"Done. Success: {ok} | Failed: {failed} | Rows loaded: {total_rows}")
 
+    print(f"Concatenating {len(all_dfs)} DataFrames...")
     merged = pd.concat(all_dfs, ignore_index=True)
-    return _dataframe_for_bruin_upload(merged)
+    print(f"Merged shape: {merged.shape} | dtypes: {merged.dtypes.to_dict()}")
+    result = _dataframe_for_bruin_upload(merged)
+    print(f"Ready to return {len(result)} rows to Bruin")
+    return result

@@ -1,45 +1,47 @@
 # 🚲 Santander Cycles Analytics Pipeline
 
-An end-to-end batch data pipeline that ingests **TfL Santander Cycles** journey data from the [cycling.data.tfl.gov.uk](https://cycling.data.tfl.gov.uk) open data portal, transforms it in BigQuery, and surfaces insights in a Looker Studio dashboard.
+An end-to-end batch data pipeline that ingests **TfL Santander Cycles** journey data from the [cycling.data.tfl.gov.uk](https://cycling.data.tfl.gov.uk) open data portal into BigQuery, transforms it through staging and mart layers, and surfaces insights in a Streamlit dashboard.
 
 ---
 
 ## Problem Statement
 
-TfL publishes weekly CSV files of every Santander Cycles journey in London — over 100 million rows spanning 10+ years. The raw data is:
+TfL publishes weekly CSV files of every Santander Cycles journey in London — over 135 million rows spanning 2012 to present. The raw data is:
 
-- **Messy**: inconsistent column names across years, mixed encodings, duplicate records, invalid durations
-- **Fragmented**: hundreds of individual CSV files with no aggregation
-- **Unanalysable at scale**: direct CSV analysis is slow and error-prone
+- **Messy**: 9 different column name schemas across years, mixed date formats, duplicate records.
+- **Fragmented**: hundreds of individual CSV and zip files with no aggregation.
+- **Unanalysable at scale**: direct CSV analysis is slow, error-prone and hard to handle >1m rows.
 
 This pipeline solves those problems by building a production-grade data warehouse that answers:
 
-1. **How has cycling demand changed over time?** (seasonality, COVID impact, growth trends)
-2. **Which stations are the busiest?** (origin-destination analysis, geographic distribution)
-3. **What does a typical ride look like?** (duration distributions, round-trip rates)
+This pipeline shows the beauty of data engineering by:
+
+1. **Keeping it light** - 3 tools only, 2 more for IaC and venv management. All tools are open source. The project could be ported to DuckDB for more lightness.
+
+2. **Working at scale** - reads data from 450+ files with creatively disparate naming schemas and 9 column header schemas, resolving a bunch of errors and typical CSV data issues along the way.
+
+3. **Producing a beautiful dashboard** - credit to Streamlit and Claude Code for tech skills; credit to the heart for the feel and taste.
+
 
 ---
 
 ## Architecture
 
 ```
-TfL Website          Orchestration        Data Lake            Warehouse         Dashboard
-──────────           ─────────────        ─────────            ─────────         ─────────
-CSV files    ──►    Prefect DAG   ──►    GCS (Parquet)  ──►  BigQuery    ──►  Looker Studio
-(weekly)            (batch)              raw/ prefix          dbt models        2 tiles
+TfL Website          Orchestration        Warehouse                  Dashboard
+───────────          ─────────────        ─────────                  ─────────
+CSV / zip    ──►     Bruin (Python/SQL) ──►   BigQuery                   Streamlit
+(weekly)             append strategy      ing → stg → mrt    ──►    (local)
 ```
 
-**Technology choices:**
+**Stack:**
 
 | Layer | Tool | Why |
 |---|---|---|
-| IaC | Terraform | Reproducible GCP provisioning; state managed in code |
-| Orchestration | Prefect | Python-native DAGs, built-in retries, Prefect Cloud scheduling |
-| Data Lake | Google Cloud Storage | Cheap durable Parquet storage; direct BQ external table support |
-| Warehouse | BigQuery | Serverless, columnar, handles 100M+ rows efficiently; partitioning + clustering |
-| Transformation | dbt | SQL-based, version-controlled models; built-in testing; lineage |
-| Dashboard | Looker Studio | Free, native BigQuery connector, shareable |
-| CI/CD | GitHub Actions | Automated lint, compile, and deploy on push |
+| IaC | Terraform | Reproducible GCP provisioning |
+| Orchestration | Bruin | Python-native assets, built-in quality checks, ingestr for BQ loading |
+| Warehouse | BigQuery | Serverless, columnar, handles 135M+ rows; partitioning + clustering |
+| Dashboard | Streamlit | Python-native, runs locally against BigQuery mart tables |
 
 ---
 
@@ -47,299 +49,195 @@ CSV files    ──►    Prefect DAG   ──►    GCS (Parquet)  ──►  B
 
 ```
 santander-cycles-pipeline/
-├── terraform/               # GCP infrastructure (GCS, BigQuery, SA)
+├── .env                          # Environment variables (never commit)
+├── .env.init                     # Template — copied to .env on setup
+├── .bruin.yml                    # Bruin connection config (never commit)
+├── .bruin.yml.init               # Template — copied to .bruin.yml on setup
+├── .streamlit/
+│   └── config.toml               # Streamlit theme config
+├── Makefile                      # All runnable commands
+├── keys/
+│   ├── gcp-sa-key.json           # Pipeline SA key (never commit)
+│   └── terraform-sa-key.json     # Terraform SA key (never commit)
+├── terraform/
 │   ├── main.tf
-│   └── variables.tf
-├── prefect/                 # Batch ingestion pipeline
-│   ├── pipeline.py          # Main Prefect flow (5-step DAG)
-│   ├── schedule.py          # Prefect Cloud deployment + weekly schedule
-│   └── requirements.txt
-├── dbt/                     # SQL transformations
-│   ├── models/
-│   │   ├── staging/
-│   │   │   └── stg_rides.sql         # Clean + type raw data
-│   │   └── marts/
-│   │       ├── fct_rides.sql         # Fact table (partitioned + clustered)
-│   │       ├── dim_stations.sql      # Station dimension
-│   │       ├── mart_monthly_summary.sql  # Dashboard Tile 1
-│   │       └── mart_station_stats.sql    # Dashboard Tile 2
-│   ├── tests/               # Custom dbt data tests
-│   ├── dbt_project.yml
-│   ├── profiles.yml
-│   └── packages.yml
-├── scripts/
-│   ├── test_pipeline.py     # Unit tests (pytest)
-│   └── looker_studio_setup.md
-├── .github/workflows/
-│   └── ci.yml               # CI: lint → dbt compile → deploy
-├── Makefile                 # All commands in one place
-├── .env.example
-└── README.md
+│   └── variables.tf              # Variables are sourced from .env file
+├── bruin/
+│   ├── pipeline.yml              # Pipeline definition + variables
+│   └── assets/
+│       ├── ing_journeys.py       # Ingestion → san_cycles_ing.journeys
+│       ├── stg_journeys.py       # Staging  → san_cycles_stg.journeys
+│       ├── mrt_dim_stations.py   # Staging  → san_cycles_mrt dataset
+│       ├── mrt_fct_journeys.py
+│       ├── mrt_station_stats.py
+│       ├── mrt_bike_stats.py
+│       └── mrt_kpis_monthly.py
+└── streamlit/
+    └── app.py
+```
+
+---
+
+## Setup
+
+The project runs on GCP and requires a GCP project and a Terraform service account created manually upfront. Everything else is managed through Terraform and `make`.
+
+**Recommended: GitHub Codespaces.** Setup takes under 10 minutes in a fresh Codespace. Any environment with `git`, `make`, `uv`, `bruin`, and `terraform` should be enough.
+
+### 1. Open Codespace and clone the repo
+
+### 2. Run make setup
+
+```bash
+make setup
+```
+
+This installs Bruin, syncs uv dependencies, and initialises `.env` and `.bruin.yml` from their templates.
+
+### 3. Install Terraform
+
+The script below comes from individual components on https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli .
+
+
+```bash
+sudo apt-get update && sudo apt-get install -y gnupg software-properties-common
+
+wget -O- https://apt.releases.hashicorp.com/gpg | \
+gpg --dearmor | \
+sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null
+
+gpg --no-default-keyring \
+--keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg \
+--fingerprint
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
+https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | \
+sudo tee /etc/apt/sources.list.d/hashicorp.list
+
+sudo apt update && sudo apt-get install terraform
+```
+
+### 4. Create a GCP project
+
+Create a GCP project at [console.cloud.google.com](https://console.cloud.google.com). Note the **project ID** and your preferred **region** — you'll need these in `.env`.
+
+### 5. Create the Terraform service account
+
+- [ ] Create service account
+- [ ] Grant permissions
+  - [ ] bigquery.dataOwner
+  - [ ] storage.admin
+  - [ ] iam.serviceAccountAdmin
+  - [ ] iam.serviceAccountKeyAdmin
+  - [ ] resourcemanager.projectIamAdmin
+- [ ] Download key → save to keys/terraform-sa-key.json
+- [ ] Troubleshoot any setup issues. These would come up at `make infra-apply`
+
+
+### 6. Configure .env
+
+Edit `.env` and fill in:
+
+```bash
+export GCP_PROJECT=<your-project-id>
+export LOCATION=<your-region>        # e.g. europe-west2
+export YEARS="[2023,2024,2025]"      # years to ingest (JSON array)
+export TF_VAR_credentials=../keys/terraform-sa-key.json
+```
+
+### 7. Provision GCP infrastructure
+
+```bash
+make infra-apply
+```
+
+This creates the GCS bucket, BigQuery datasets (`san_cycles_ing`, `san_cycles_stg`, `san_cycles_mrt`), pipeline service account, and writes `keys/gcp-sa-key.json`.
+
+### 8. Run the pipeline
+
+```bash
+make bruin-run          # full pipeline: ingest → stage → marts
+make stream-dash        # launch Streamlit dashboard at localhost:8501
+```
+
+> **Note:** Currently this project is limited to running a few years at a time. Bruin requires a dataframe to be passed after asset executes, and tends to choke on 100M records at once. The pipeline runs best processing up to 5 years at a time due to in-memory DataFrame concatenation. For full historical load, run in batches via `YEARS="[2012,2013,2014,2015]"` etc. Also go ahead and brake it!
+
+---
+
+## Makefile Commands
+
+```bash
+make setup             # Install uv, bruin + Python deps + copy init files
+make infra-plan        # Terraform plan
+make infra-apply       # Terraform apply (creates GCP resources + writes SA key)
+make infra-destroy     # Terraform destroy
+make bruin-ingest      # Run ingestion (uses YEARS from .env)
+make bruin-stage       # Run staging asset
+make bruin-marts       # Run all mart assets
+make bruin-run         # Run full pipeline
+make stream-dash       # Launch Streamlit dashboard
+make clean             # Remove .venv and /tmp/tfl cache
 ```
 
 ---
 
 ## Data Model
 
-### Partitioning & Clustering Strategy
+Three BigQuery layers:
 
-**`fct_rides`** — the central fact table:
-- **Partitioned by `ride_month` (DATE, monthly granularity)**
-  Dashboards and queries almost always filter by date range. Monthly partitioning means a query for "rides in 2023" only scans 12 partitions instead of the entire table. At ~10M rows/month, this reduces query costs by ~90%.
-- **Clustered by `[start_station_id, end_station_id]`**
-  Origin-destination queries (e.g. "all rides from station X to station Y") are the second most common access pattern. Clustering sorts data within each partition by these fields, enabling BigQuery to skip irrelevant blocks without a full partition scan.
+**`san_cycles_ing`** — raw append-only data as ingested from TfL. Partitioned by `start_date` (monthly), clustered by `start_station_id`.
 
-**`mart_monthly_summary`** — dashboard pre-aggregation:
-- **Partitioned by `ride_month`**
-  Looker Studio date range filters translate directly to partition pruning.
+**`san_cycles_stg`** — cleaned and deduplicated. Adds derived fields (`ride_date`, `journey_month`, `start_hour`, `is_round_trip`), backfills missing station IDs via name lookup, and enforces quality checks.
 
-**`dim_stations`** — station lookup:
-- **Clustered by `station_id`**
-  Geographic filtering (e.g. "all stations in Hackney") is the primary access pattern. No partitioning needed — the table is small (~800 rows).
+**`san_cycles_mrt`** — mart tables for the dashboard:
 
-**`mart_station_stats`** — station aggregations:
-- **Clustered by `station_id`**
-  Same rationale as `dim_stations`.
-
-### dbt Lineage
-
-```
-raw_rides (BigQuery)
-    └── stg_rides (VIEW)
-            ├── fct_rides (TABLE, partitioned)
-            │       ├── mart_monthly_summary (TABLE, partitioned)  ← Dashboard Tile 1
-            │       └── mart_station_stats (TABLE, clustered)      ← Dashboard Tile 2
-            └── dim_stations (TABLE, clustered)
-                    └── mart_station_stats
-```
-
----
-
-## Prerequisites
-
-- GCP project with billing enabled
-- `gcloud` CLI authenticated (`gcloud auth login`)
-- Terraform ≥ 1.3
-- `uv` (replaces pip/virtualenv — one tool for everything)
-- `make`
-
-Install uv if you don't have it:
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-# restart your terminal after
-```
-
----
-
-## Quick Start
-
-### 1. Install uv (if you haven't already)
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-# restart your terminal
-```
-
-### 2. Clone and configure
-
-```bash
-git clone https://github.com/your-username/santander-cycles-pipeline.git
-cd santander-cycles-pipeline
-make setup        # creates .env from template and runs uv sync
-# Edit .env — fill in GCP_PROJECT (the rest comes from Terraform output)
-```
-
-### 2. Provision GCP infrastructure
-
-```bash
-cp terraform/terraform.tfvars.example terraform/terraform.tfvars
-# Edit terraform.tfvars with your project_id
-make infra-apply
-```
-
-This creates:
-- GCS bucket: `<project>-santander-cycles-lake`
-- BigQuery datasets: `santander_cycles_raw`, `santander_cycles_staging`, `santander_cycles_mart`
-- Service account with BigQuery Admin + Storage Admin roles
-- SA key written to `keys/gcp-sa-key.json`
-
-### 3. Run the ingestion pipeline (smoke test — 3 files)
-
-```bash
-make run-pipeline-test
-```
-
-### 4. Run the full historical ingestion
-
-```bash
-make run-pipeline   # downloads all 300+ CSV files (~10–20 min)
-```
-
-### 5. Run dbt transformations
-
-```bash
-make dbt-deps
-make dbt-run
-make dbt-test
-```
-
-### 6. Set up the dashboard
-
-See [`scripts/looker_studio_setup.md`](scripts/looker_studio_setup.md) for step-by-step Looker Studio configuration.
-
-### 7. Schedule weekly ingestion (optional)
-
-```bash
-# Set PREFECT_API_URL and PREFECT_API_KEY in .env first
-make register-schedule
-```
-
----
-
-## Running Tests
-
-```bash
-make test    # Python unit tests (no GCP needed)
-make lint    # Ruff linting
-make dbt-test  # dbt schema + custom tests (requires GCP)
-```
-
----
-
-## Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `GCP_PROJECT` | Yes | GCP project ID |
-| `GCS_BUCKET` | Yes | GCS bucket name (output of `make infra-apply`) |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Yes | Path to SA key JSON |
-| `BQ_DATASET_RAW` | No | Defaults to `santander_cycles_raw` |
-| `PREFECT_API_URL` | No | Prefect Cloud workspace URL |
-| `PREFECT_API_KEY` | No | Prefect Cloud API key |
+| Table | Description |
+|---|---|
+| `mrt_dim_stations` | All known stations; canonical name per station ID |
+| `mrt_fct_journeys` | Full journey fact table |
+| `mrt_station_stats` | Monthly pickups + dropoffs per station |
+| `mrt_bike_stats` | Per-bike ride counts and duration by month |
+| `mrt_kpis_monthly` | Monthly KPIs: total rides, top station, top bike, longest ride |
 
 ---
 
 ## Dashboard
 
-The Looker Studio dashboard includes two tiles:
+Run with `make stream-dash` (opens at `localhost:8501`).
 
-**Tile 1 — Rides Over Time**
-Monthly ride count and average duration from 2012 to present. Shows seasonal peaks (summer), COVID-19 dip in 2020, and long-term growth trend.
+**Tile 1 — Most loved bike of the year:** year selector, top bike by ride count with total rides and hours ridden.
 
-**Tile 2 — Top Stations**
-Horizontal bar chart of the 20 busiest docking stations, coloured by London borough. Reveals that central/Zone 1 stations (Waterloo, Hyde Park Corner, King's Cross) dominate activity.
-
----
-
-## CI/CD
-
-GitHub Actions runs on every push to `main` or `develop`:
-
-1. **Lint** — `ruff check prefect/`
-2. **Unit tests** — `pytest scripts/test_pipeline.py`
-3. **dbt compile** — validates SQL without executing
-4. **Deploy** (main only) — registers updated Prefect deployment
-
-Configure secrets in GitHub: `GCP_PROJECT`, `GCS_BUCKET`, `GCP_SA_KEY`, `PREFECT_API_URL`, `PREFECT_API_KEY`.
+**Tile 2 — Rides by season:** stacked bar chart, years on x-axis, trips stacked by Winter / Autumn / Summer / Spring.
 
 ---
 
 ## Data Source
 
-TfL Santander Cycles usage statistics:
-- URL: https://cycling.data.tfl.gov.uk
-- Licence: [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/)
-- Coverage: 2012 – present, updated weekly
-- Format: CSV, ~300+ files, ~100M+ total rows
+- **URL:** https://cycling.data.tfl.gov.uk
+- **Licence:** [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/)
+- **Coverage:** 2012 – present, updated weekly
+- **Format:** CSV (weekly files 2017+), zip (annual files 2012–2016)
+- **Volume:** 135M+ rows across 300+ files
 
+---
 
+## Known Issues
 
+- `GOOGLE_APPLICATION_CREDENTIALS` must be a **relative path** for Bruin (`keys/gcp-sa-key.json`). Absolute paths break Bruin's env resolution.
+- Bruin and `uv run` both manage `.venv` in the project root. They must use the same Python version (pinned via `.python-version`) or they'll conflict. If you hit `os error 66`, run `rm -rf .venv` and retry.
+- Cross-year files (e.g. `38JourneyDataExtract28Dec2016-03Jan2017.csv`) appear in both the 2016 zip and the 2017 CSV run. Staging deduplication handles this.
 
-# Dev notes
+---
 
-## Create a service account for Terraform
+## Self-Evaluation
 
-1. Login with gcloud auth login.
-
-2. Create Terraform service account.
-
-```shell
-gcloud iam service-accounts create terraform \
-  --display-name="Terraform SA" \
-  --project=san-cycles-data-pipe
-```
-
-3. Create and download the key.
-
-```shell
-gcloud iam service-accounts keys create \
-  keys/terraform-sa-key.json \
-  --iam-account=terraform@san-cycles-data-pipe.iam.gserviceaccount.com \
-  --project=san-cycles-data-pipe
-```
-
-4. Assign permissions to create / destry infrastructure
-
-```shell
-for role in \
-  roles/bigquery.dataOwner \
-  roles/storage.admin \
-  roles/iam.serviceAccountAdmin \
-  roles/iam.serviceAccountKeyAdmin \
-  roles/resourcemanager.projectIamAdmin; do
-  gcloud projects add-iam-policy-binding san-cycles-data-pipe \
-    --member="serviceAccount:terraform@san-cycles-data-pipe.iam.gserviceaccount.com" \
-    --role="$role"
-done
-```
-
-5. Enable Cloud Resource Manager API.
-
-```shell
-gcloud services enable cloudresourcemanager.googleapis.com --project san-cycles-data-pipe
-```
-
-
-## CSV knowledge bank
-
-What we know about the TfL data:
-
-File sources:
-
-- 2012–2016: zip files on S3 (cyclehireusagestats-2012.zip etc, 2016TripDataZip.zip)
-- 2017+: individual weekly CSV files on S3
-- S3 bucket: s3-eu-west-1.amazonaws.com/cycling.data.tfl.gov.uk
-- CDN for downloads: cycling.data.tfl.gov.uk
-
-Column name chaos across years:
-
-- Rental Id / rental id → rental_id
-- StartStation Id / Start Station Id / startstationid / startstation id → - start_station_id
-- Same mess for end station, bike id, dates
-- Start Station Logical Terminal was an alias for station ID in some years
-- Duration was seconds in early files, Duration (ms) appeared later alongside a string Duration
-
-Data types:
-
-- All IDs (rental_id, bike_id, start_station_id, end_station_id, end_station_priority_id) → INTEGER
-- duration → INTEGER (seconds) early years, then STRING
-- start_date, end_date → TIMESTAMP (dayfirst, UTC)
-- Station names → STRING
-- Early 2012 files have dates like "18  Aug12" (two spaces, 2-digit year)
-
-Business logic:
-
-- Deduplicate on rental_id within each file
-- Filter out rides with no start_date
-- Duration valid range: fail on records where (end_date - start_date - duration) > 300 seconds
-- Zips: extract all CSVs inside, process each individually
-- YEARS parameter controls which files are downloaded — zips for 2012–2016, CSVs for 2017+
-
-BigQuery target:
-
-- Dataset: san_cycles_raw
-- Table: journeys_raw
-- Partitioned by start_date (monthly)
-- Clustered by start_station_id
-
-
+| Criterion | Score | Notes |
+|---|---|---|
+| Problem description | 4 / 4 | Problem, scale, and what the pipeline answers are clearly stated |
+| Cloud | 4 / 4 | Runs on GCP; all infrastructure provisioned via Terraform |
+| Data ingestion (batch) | 2 / 4 | Multi-step Bruin DAG with quality checks; however data lands directly in BigQuery rather than a data lake (no GCS staging layer) |
+| Data warehouse | 4 / 4 | Ingestion table partitioned by `start_date` (monthly) and clustered by `start_station_id`; mart tables pre-aggregated for dashboard query patterns |
+| Transformations | 4 / 4 | Three-layer SQL pipeline (ing → stg → mrt) with deduplication, derived fields, and quality checks, orchestrated via Bruin — a lightweight alternative to dbt/Spark purpose-built for this kind of pipeline |
+| Dashboard | 4 / 4 | Two tiles: most-loved bike of the year, and rides by season |
+| Reproducibility | 4 / 4 | Step-by-step setup from zero, single `make` entrypoints, templated config files |
+| **Total** | **26 / 28** | |

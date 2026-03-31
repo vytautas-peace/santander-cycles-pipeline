@@ -1,5 +1,5 @@
 name: santander-cycles
-schedule: "@daily"
+schedule: "@weekly"
 start_date: "2012-01-01"
 
 default_connections:
@@ -8,4 +8,4 @@ default_connections:
 variables:
   years:
     type: string
-    default: ""
+    default: "[2023,2024,2025]"
