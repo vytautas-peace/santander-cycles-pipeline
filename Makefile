@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 # Santander Cycles Data Pipeline – Makefile
 # ==========================================
 # Prerequisites: gcloud CLI, terraform, bruin, uv
@@ -13,26 +15,6 @@ TF_DIR := terraform
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
-
-# ── Year validation ───────────────────────────────────────────────────────────
-check-years:
-	@set -a && source .env && set +a && \
-		uv run python -c " \
-import sys, re, os; \
-years = os.environ.get('YEARS', '').strip(); \
-if not years: \
-    print('ERROR: YEARS not set in .env. Add e.g. YEARS=2024'); sys.exit(1); \
-if years != 'all': \
-    parts = re.split(r'[,\s\[\]]+', years.strip('[]')); \
-    parts = [p for p in parts if p]; \
-    invalid = [y for y in parts if not re.match(r'^20[0-9]{2}$$', y)]; \
-    if invalid: \
-        print(f'ERROR: Invalid years: {invalid}. Use 4-digit years or \"all\"'); sys.exit(1); \
-    out_of_range = [y for y in parts if not (2012 <= int(y) <= 2030)]; \
-    if out_of_range: \
-        print(f'ERROR: Years out of range (2012-2030): {out_of_range}'); sys.exit(1); \
-print(f'Years: {years}'); \
-"
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
 setup: check-uv install  ## Full local setup
@@ -75,9 +57,9 @@ infra-destroy:  ## Destroy all GCP resources
 		cd $(TF_DIR) && terraform destroy
 
 # ── Bruin Pipeline ────────────────────────────────────────────────────────────
-bruin-ingest: check-years  ## Run raw ingestion asset (uses YEARS from .env)
+bruin-ingest:  ## Run raw ingestion asset (uses YEARS from .env)
 	@set -a && source .env && set +a && \
-		bruin run bruin/assets/raw_journeys.py --var years="$$YEARS"
+		bruin run bruin/assets/raw_journeys.py --var years=$$YEARS
 
 bruin-stg:  ## Run staging asset (includes quality checks)
 	@set -a && source .env && set +a && \
