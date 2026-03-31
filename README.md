@@ -38,10 +38,15 @@ CSV / zip    ──►     Bruin (Python/SQL) ──►   BigQuery              
 
 | Layer | Tool | Why |
 |---|---|---|
-| IaC | Terraform | Reproducible GCP provisioning |
-| Orchestration | Bruin | Python-native assets, built-in quality checks, ingestr for BQ loading |
-| Warehouse | BigQuery | Serverless, columnar, handles 135M+ rows; partitioning + clustering |
-| Dashboard | Streamlit | Python-native, runs locally against BigQuery mart tables |
+| IaC | Terraform | It's light, clear, does one thing well. |
+| Data query | SQL | Simple, elegant, easy to structure and understand limitations. |
+| Scripting language | Python | Portable, integrated, cohesive. |
+| Orchestration | Bruin | Fresh product, unifies ingestion & staging well, I like bears :) |
+| Warehouse | BigQuery | Serverless, columnar, handles 135M+ rows; partitioning + clustering, getting to know wild tech :) |
+| Dashboard | Streamlit | Python-native, runs locally against BigQuery mart tables, looks ace! |
+| AI assistant | Claude Code | Gets me through the mental loops, reliable, wild tech! |
+| Version control | Github | It works well and offers killer feature Codespaces.
+
 
 ---
 
@@ -76,6 +81,7 @@ santander-cycles-pipeline/
     └── app.py
 ```
 
+
 ---
 
 ## Setup
@@ -84,9 +90,29 @@ The project runs on GCP and requires a GCP project and a Terraform service accou
 
 **Recommended: GitHub Codespaces.** Setup takes under 10 minutes in a fresh Codespace. Any environment with `git`, `make`, `uv`, `bruin`, and `terraform` should be enough.
 
-### 1. Open Codespace and clone the repo
 
-### 2. Run make setup
+### 1. Create a GCP project
+
+Create a GCP project at [console.cloud.google.com](https://console.cloud.google.com). Note the **project ID** and your preferred **region** — you'll need these for `.env`.
+
+
+### 2. Create the Terraform service account
+
+- [ ] Create service account
+- [ ] Grant permissions
+  - [ ] bigquery.dataOwner
+  - [ ] storage.admin
+  - [ ] iam.serviceAccountAdmin
+  - [ ] iam.serviceAccountKeyAdmin
+  - [ ] resourcemanager.projectIamAdmin
+- [ ] Download key → save to keys/terraform-sa-key.json
+- [ ] Troubleshoot any setup issues. These would come up at `make infra-apply`
+
+
+### 3. Open Codespace and clone the repo
+
+
+### 4. Run make setup
 
 ```bash
 make setup
@@ -94,10 +120,24 @@ make setup
 
 This installs Bruin, syncs uv dependencies, and initialises `.env` and `.bruin.yml` from their templates.
 
-### 3. Install Terraform
 
-The script below comes from individual components on https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli .
+### 5. Configure .env
 
+Edit `.env` and fill in:
+
+```bash
+export GCP_PROJECT=<your-project-id>
+export LOCATION=<your-region>        # e.g. europe-west2
+export YEARS="[2023,2024,2025]"      # years to ingest (JSON array)
+export TF_VAR_credentials=../keys/terraform-sa-key.json
+```
+
+.bruin.yml needs no configuration.
+
+
+### 6. Install Terraform
+
+The script below comes from individual components on https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli . I couldn't get it to work as a part of make file. If you know how, I'd love to learn!
 
 ```bash
 sudo apt-get update && sudo apt-get install -y gnupg software-properties-common
@@ -117,33 +157,6 @@ sudo tee /etc/apt/sources.list.d/hashicorp.list
 sudo apt update && sudo apt-get install terraform
 ```
 
-### 4. Create a GCP project
-
-Create a GCP project at [console.cloud.google.com](https://console.cloud.google.com). Note the **project ID** and your preferred **region** — you'll need these in `.env`.
-
-### 5. Create the Terraform service account
-
-- [ ] Create service account
-- [ ] Grant permissions
-  - [ ] bigquery.dataOwner
-  - [ ] storage.admin
-  - [ ] iam.serviceAccountAdmin
-  - [ ] iam.serviceAccountKeyAdmin
-  - [ ] resourcemanager.projectIamAdmin
-- [ ] Download key → save to keys/terraform-sa-key.json
-- [ ] Troubleshoot any setup issues. These would come up at `make infra-apply`
-
-
-### 6. Configure .env
-
-Edit `.env` and fill in:
-
-```bash
-export GCP_PROJECT=<your-project-id>
-export LOCATION=<your-region>        # e.g. europe-west2
-export YEARS="[2023,2024,2025]"      # years to ingest (JSON array)
-export TF_VAR_credentials=../keys/terraform-sa-key.json
-```
 
 ### 7. Provision GCP infrastructure
 
@@ -160,7 +173,11 @@ make bruin-run          # full pipeline: ingest → stage → marts
 make stream-dash        # launch Streamlit dashboard at localhost:8501
 ```
 
+
+# BOOM!
+
 > **Note:** Currently this project is limited to running a few years at a time. Bruin requires a dataframe to be passed after asset executes, and tends to choke on 100M records at once. The pipeline runs best processing up to 5 years at a time due to in-memory DataFrame concatenation. For full historical load, run in batches via `YEARS="[2012,2013,2014,2015]"` etc. Also go ahead and brake it!
+
 
 ---
 
@@ -178,6 +195,7 @@ make bruin-run         # Run full pipeline
 make stream-dash       # Launch Streamlit dashboard
 make clean             # Remove .venv and /tmp/tfl cache
 ```
+
 
 ---
 
@@ -204,6 +222,7 @@ Three BigQuery layers:
 | `mrt_bike_stats` | Per-bike ride counts and duration by month |
 | `mrt_kpis_monthly` | Monthly KPIs: total rides, top station, top bike, longest ride |
 
+
 ---
 
 ## Dashboard
@@ -213,6 +232,7 @@ Run with `make stream-dash` (opens at `localhost:8501`).
 **Tile 1 — Most loved bike of the year:** year selector, top bike by ride count with total rides and hours ridden.
 
 **Tile 2 — Rides by season:** stacked bar chart, years on x-axis, trips stacked by Winter / Autumn / Summer / Spring.
+
 
 ---
 
@@ -224,13 +244,15 @@ Run with `make stream-dash` (opens at `localhost:8501`).
 - **Format:** CSV (weekly files 2017+), zip (annual files 2012–2016)
 - **Volume:** 135M+ rows across 300+ files
 
+
 ---
 
-## Known Issues
+## Known Issues - Handled
 
 - `GOOGLE_APPLICATION_CREDENTIALS` must be a **relative path** for Bruin (`keys/gcp-sa-key.json`). Absolute paths break Bruin's env resolution.
-- Bruin and `uv run` both manage `.venv` in the project root. They must use the same Python version (pinned via `.python-version`) or they'll conflict. If you hit `os error 66`, run `rm -rf .venv` and retry.
+- Bruin and `uv run` both manage `.venv` in the project root. They don't conflict when they use the same Python version (pinned via `.python-version`). If you hit `os error 66`, run `rm -rf .venv` and retry.
 - Cross-year files (e.g. `38JourneyDataExtract28Dec2016-03Jan2017.csv`) appear in both the 2016 zip and the 2017 CSV run. Staging deduplication handles this.
+
 
 ---
 

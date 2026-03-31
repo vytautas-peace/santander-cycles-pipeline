@@ -38,3 +38,7 @@ logs/
 .ruff_cache/
 
 .claude/
+
+scripts/
+
+_sample_schemas/

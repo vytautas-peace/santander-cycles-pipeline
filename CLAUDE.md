@@ -20,6 +20,7 @@ santander-cycles-pipeline/
 ├── .env.init                     # Template — copied to .env on setup
 ├── .bruin.yml                    # Bruin connection config (never commit)
 ├── .bruin.yml.init               # Template — copied to .bruin.yml on setup
+├── .python-version               # Pins Python to 3.11 — must match Bruin's interpreter
 ├── .streamlit/
 │   └── config.toml               # Streamlit theme + toolbar config
 ├── Makefile                      # All runnable commands
@@ -54,7 +55,7 @@ santander-cycles-pipeline/
 # User configuration
 export GCP_PROJECT=san-cycles-data-pipe
 export LOCATION=asia-southeast1
-export YEARS="[2024]"
+export YEARS="[2021,2022,2023,2024,2025]"
 export TF_VAR_credentials=../keys/terraform-sa-key.json
 
 # Pre-set — don't change
@@ -86,13 +87,6 @@ export GOOGLE_APPLICATION_CREDENTIALS=keys/gcp-sa-key.json
 - `san_cycles_mrt` — mart tables
 
 **GCS Bucket:** `san-cycles-data-pipe-bkt` (asia-southeast1, STANDARD, versioned)
-
-**Terraform commands:**
-```bash
-make infra-plan
-make infra-apply
-make infra-destroy
-```
 
 ---
 
@@ -157,7 +151,7 @@ Schemas 1–4 use `dd/mm/yyyy` date formats. Schemas 5–7 are post-2022 with bi
 
 Partitioned by `start_date` (MONTH), clustered by `start_station_id`.
 
-**Current data:** 135,364,573 rows covering 2012–2025.
+**Current data:** 135M+ rows covering 2012–2025.
 
 ---
 
@@ -178,6 +172,8 @@ environments:
           service_account_file: ${GOOGLE_APPLICATION_CREDENTIALS}
 ```
 
+**`pipeline.yml`:** schedule `@weekly`, `years` variable declared with `default: "[2023,2024,2025]"`.
+
 **Running ingestion:**
 ```bash
 # Single year
@@ -186,14 +182,14 @@ bruin run bruin/assets/ing_journeys.py --var years='[2024]'
 # Multiple years
 bruin run bruin/assets/ing_journeys.py --var years='[2022,2023,2024]'
 
-# Via Makefile
-make bruin-ingest   # uses YEARS from .env
-make bruin-stage    # runs staging asset
-make bruin-marts    # runs all mart assets
+# Via Makefile (uses YEARS from .env)
+make bruin-ingest   # ingestion only
+make bruin-stage    # staging asset
+make bruin-marts    # all mart assets
 make bruin-run      # full pipeline
 ```
 
-**Year array syntax:** must be JSON array e.g. `'[2023]'` not `"2023"`.
+**Batch size limit:** run up to ~5 years at a time — Bruin loads the full DataFrame in memory before handing to ingestr.
 
 ---
 
@@ -201,7 +197,10 @@ make bruin-run      # full pipeline
 
 **`materialize()` returns a concatenated DataFrame** — Bruin handles BQ loading via ingestr/dlt with `strategy: append`.
 
-The `name: san_cycles_ing.journeys` in the Bruin header determines the BQ write target — not the `BQ_DS_ING`/`BQ_TBL_ING` env vars (those are used if the Python code queries BQ directly).
+**Year resolution order:**
+1. `--var years=` passed to Bruin (may arrive as list or JSON string — both handled)
+2. `$YEARS` environment variable (from `.env`)
+3. `None` → ingest all years
 
 **Key business logic:**
 - Reads all CSVs as `dtype=str` first, then casts explicitly
@@ -225,8 +224,8 @@ The `name: san_cycles_ing.journeys` in the Bruin header determines the BQ write 
 - `QUALIFY ROW_NUMBER()` deduplication (keep latest `_ingested_at` per `rental_id`)
 - Backfills missing `start_station_id` / `end_station_id` via name→id lookup built from all rows where both fields are present
 - Filters: `start_date IS NOT NULL`, `end_date IS NOT NULL`, `duration IS NOT NULL`, `duration > 0`
-- Drops 1,173 pre-2012 rows (erroneous 1901–1902 timestamps)
-- Drops 16 journeys with no end location at all
+- Drops pre-2012 rows (erroneous 1901–1902 timestamps)
+- Drops journeys with no end location at all
 
 **Quality checks:**
 - `rental_id`: not_null, unique
@@ -268,10 +267,7 @@ Logo: official Santander flame path extracted from santander.co.uk SVG, embedded
 ## Makefile Commands
 
 ```bash
-make setup             # Install uv, terraform, bruin + Python deps + copy init files
-make install-uv        # Install uv
-make install-terraform # Install Terraform
-make install-bruin     # Install Bruin CLI
+make setup             # Install uv, bruin + Python deps + copy init files
 make infra-plan        # Terraform plan
 make infra-apply       # Terraform apply
 make infra-destroy     # Terraform destroy
@@ -293,11 +289,14 @@ make clean             # Remove .venv and /tmp/tfl cache
 - **`Int64` dtype breaks Arrow serialization** — `_dataframe_for_bruin_upload()` converts to `int64` with `fillna(0)`
 - **Cross-year files** (e.g. `38JourneyDataExtract28Dec2016-03Jan2017.csv`) appear in both 2016 zip and 2017 CSV run — staging deduplication handles this
 - **File 335 onwards (Sep 2022)** uses new schema with `Number`, `Start date`, `Total duration (ms)` etc.
+- **Python version must match between Bruin and uv** — both must use 3.11 (pinned in `.python-version`). Mismatch causes `os error 66` venv conflict. Fix: `rm -rf .venv` and ensure `.python-version` is `3.11`
+- **GCP SA key** — if you get `invalid_grant: Invalid JWT Signature`, the key has been revoked. Generate a new one from GCP Console → IAM → Service Accounts → Keys, or via `gcloud iam service-accounts keys create`
+- **`--var years` arrives as list or string** depending on how Bruin passes it — `materialize()` handles both
 
 ---
 
 ## Next Steps
 
-1. **Get staging to 5/5 checks passing** — re-ingest problem years and verify null counts are resolved
-2. **GCP VM deployment** — test fresh `make setup` on a Linux e2-highmem-4 VM for reproducibility
-3. **Schedule** weekly Bruin run for new TfL files (Cloud Scheduler or cron)
+1. **Schedule** — set up weekly Cloud Scheduler or cron trigger for new TfL files
+2. **GCS staging layer** — land raw CSVs in GCS before BigQuery for a proper data lake pattern
+3. **VM deployment** — test fresh `make setup` on a Linux e2-highmem-4 for reproducibility
