@@ -94,7 +94,7 @@ santander-cycles-pipeline/
 ├── docker/
 │   └── docker-compose.yml           # Kestra + Postgres + Streamlit stack
 ├── kestra/
-│   ├── data/                        # Kestra directory for data processing 
+│   ├── data/                        # Kestra directory for data processing (gitignored)
 │   ├── flows/                       # Kestra flow definitions
 │   │   ├── main_prod_guide.yml      # guide: top-level flow
 │   │   ├── main_prod_source_.yml    # source: discover ▸ download ▸ unzip ▸ parquet ▸ GCS
@@ -109,15 +109,24 @@ santander-cycles-pipeline/
 │   │   └── upload-parquet.py        # Upload to GCS
 │   ├── pyproject.toml
 │   └── uv.lock
+├── secrets/                         # SA keys + encoded env (gitignored)
+│   ├── terraform-sa-key.json        # Manually downloaded — Terraform SA key
+│   ├── gcp-sa-key.json              # Written by `make infra-apply` — pipeline SA key
+│   └── .env_encoded                 # Written by `make docker-up` — base64 SA key for Kestra
 ├── streamlit/
 │   ├── dashboard.py                 # Reads serve.dashboard from BigQuery
 │   ├── main.py
 │   ├── santander_logo.svg
 │   ├── pyproject.toml
 │   └── uv.lock
-└── terraform/                       # GCP infra: GCS bucket, BQ datasets, pipeline SA
-    ├── main.tf
-    └── variables.tf
+├── terraform/                       # GCP infra: GCS bucket, BQ datasets, pipeline SA
+│   ├── main.tf
+│   └── variables.tf
+├── .env                             # Local environment variables (gitignored)
+├── .env_example                     # Template — copy to .env via `make env`
+├── .gitignore
+├── Makefile                         # env, infra-apply, docker-up, kestra-lets-flow, ...
+└── README.md
 ```
 
 ---
