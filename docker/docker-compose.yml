@@ -81,12 +81,6 @@ services:
     depends_on:
       kestra-postgres:
         condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
 
   streamlit:
     image: ghcr.io/astral-sh/uv:python3.13-bookworm-slim

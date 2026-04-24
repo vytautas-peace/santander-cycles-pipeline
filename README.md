@@ -109,8 +109,6 @@ santander-cycles-pipeline/
 │   │   └── upload-parquet.py        # Upload to GCS
 │   ├── pyproject.toml
 │   └── uv.lock
-├── scripts/
-│   └── trigger-guide-flow.sh        # Encode SA key and trigger Kestra guide flow
 ├── streamlit/
 │   ├── dashboard.py                 # Reads serve.dashboard from BigQuery
 │   ├── main.py
@@ -126,7 +124,9 @@ santander-cycles-pipeline/
 
 ## Setup
 
-The project targets GCP (BigQuery + GCS). Setup takes under 10 minutes in a fresh GitHub Codespace — any environment with `git`, `docker`, and `terraform` is enough.
+The project targets GCP (BigQuery + GCS). Setup takes under 10 minutes in a fresh GitHub Codespace — any environment with `git`, `docker`, `make`, and `terraform` is enough.
+
+**Recommended Codespace spec:** 4-core / 16 GB RAM. From the repo's **Code → Codespaces → ⋯ (three dots) → New with options**, choose the 4-core / 16 GB machine type before launching.
 
 
 ### 1. Create a GCP project
@@ -157,7 +157,7 @@ From the repo page, **Code → Codespaces → Create codespace on main**. The Co
 Rename the template and fill in your values:
 
 ```bash
-mv .env_example .env
+make env
 ```
 
 Edit `.env`:
@@ -199,10 +199,10 @@ sudo apt update && sudo apt-get install terraform
 ### 6. Provision GCP infrastructure
 
 ```bash
-cd terraform && terraform init && terraform apply
+make infra-apply
 ```
 
-This creates the GCS bucket, BigQuery datasets, and the pipeline service account (key written to `secrets/gcp-sa-key.json`).
+This runs `terraform init && terraform apply` and creates the GCS bucket, BigQuery datasets, and the pipeline service account (key written to `secrets/gcp-sa-key.json`).
 
 
 ---
@@ -212,31 +212,43 @@ This creates the GCS bucket, BigQuery datasets, and the pipeline service account
 ### 1. Start Kestra and Streamlit
 
 ```bash
-cd docker && docker compose up -d
+make docker-up
 ```
 
-Brings up Kestra (`localhost:8080`, admin@kestra.io / Admin1234!), its Postgres, and the Streamlit dashboard (`localhost:8501`).
+Encodes the GCP service account key into `secrets/.env_encoded` (consumed by Kestra as a secret) and brings up Kestra, its Postgres, and the Streamlit dashboard.
 
 ### 2. Trigger the `guide` flow
 
 ```bash
-./scripts/trigger-guide-flow.sh
+make kestra-lets-flow
 ```
 
-This encodes the GCP service account key into `secrets/.env_encoded` (consumed by Kestra as a secret) and triggers the `prod.guide` flow via the Kestra API.
-
-You can also trigger manually from the Kestra UI under the `prod` namespace.
+Triggers the `prod.guide` flow via the Kestra API with the date range and project from `.env`. You can also trigger manually from the Kestra UI under the `prod` namespace.
 
 ### 3. Monitor progress and view the dashboard
 
-Kestra process dashboard, Gantt charts and logs are available  at[localhost:8080](localhost:8080) with login details:
+Kestra process dashboard, Gantt charts and logs are available at [http://localhost:8080](http://localhost:8080) with login details:
 
 ```
 username: admin@kestra.io
 password: Admin1234!
 ```
 
-After the completion of `serve` flow, dashboard becomes available at [localhost:8501](localhost:8501).
+After the completion of the `serve` flow, the dashboard becomes available at [http://localhost:8501](http://localhost:8501).
+
+### 4. Cleanup
+
+When you're done, tear everything down in this order:
+
+```bash
+make docker-down-v    # stop containers AND remove Kestra volumes (Postgres + app storage)
+make infra-destroy    # terraform destroy — removes GCS bucket, BigQuery datasets, pipeline SA
+```
+
+Then on the web:
+
+- **GitHub Codespace:** github.com/codespaces → stop → delete the Codespace.
+- **GCP:** delete the Terraform service account, then shut down (and schedule deletion of) the GCP project itself. Deleting the project is the cleanest way to guarantee no residual resources keep billing.
 
 ---
 

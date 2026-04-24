@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 5.0"
     }
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.0"
+    }
   }
 }
 
@@ -58,6 +62,11 @@ resource "google_project_iam_member" "sa_gcs_admin" {
 
 resource "google_service_account_key" "pipeline_sa_key" {
   service_account_id = google_service_account.pipeline_sa.name
+}
+
+resource "local_file" "gcp_sa_key_file" {
+  content  = base64decode(google_service_account_key.pipeline_sa_key.private_key)
+  filename = "${path.module}/../secrets/gcp-sa-key.json"
 }
 
 
