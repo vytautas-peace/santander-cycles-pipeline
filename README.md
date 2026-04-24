@@ -314,3 +314,7 @@ Runs inside the Docker stack on `localhost:8501`, reading from `serve.dashboard`
 - **Volume:** c. 140M rows across c. 500 files
 - **Schema variants:** 9 different column-name schemas and 4 date formats across years
 
+
+---
+
+## Thanks for reading - and following along! ✨😌
