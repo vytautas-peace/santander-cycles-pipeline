@@ -1,0 +1,60 @@
+id: ingest
+namespace: prod
+
+inputs:
+
+  - id: project
+    type: STRING
+    defaults: san-cycles-data-pipe
+
+  - id: location
+    type: STRING
+    defaults: asia-southeast1
+
+  - id: bucket
+    type: STRING
+    defaults: san-cycles-data-pipe-bkt
+
+
+tasks:
+
+  - id: create_schema_ingest
+    type: io.kestra.plugin.gcp.bigquery.Query
+    serviceAccount: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
+    projectId: "{{ inputs.project }}"
+    location: "{{ inputs.location }}"
+    sql: |
+      CREATE SCHEMA IF NOT EXISTS `{{ inputs.project }}.ingest`
+        OPTIONS (location = '{{ inputs.location }}');
+
+  - id: create_table_ingest_journeys_ext
+    type: io.kestra.plugin.gcp.bigquery.Query
+    serviceAccount: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
+    projectId: "{{ inputs.project }}"
+    location: "{{ inputs.location }}"
+    sql: |
+      CREATE OR REPLACE EXTERNAL TABLE `{{ inputs.project }}.ingest.journeys_ext`
+        OPTIONS (
+          format = 'PARQUET',
+          uris   = ['gs://{{ inputs.bucket }}/parquet/*.parquet']
+        );
+
+  - id: create_view_ingest_journeys
+    type: io.kestra.plugin.gcp.bigquery.Query
+    serviceAccount: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
+    projectId: "{{ inputs.project }}"
+    location: "{{ inputs.location }}"
+    sql: |
+      CREATE OR REPLACE VIEW `{{ inputs.project }}.ingest.journeys` AS
+      WITH joined AS (
+        SELECT j.*, m.last_modified
+        FROM `{{ inputs.project }}.ingest.journeys_ext` j
+        JOIN `{{ inputs.project }}.source.metadata` m
+        ON j.filename_parquet = m.filename_parquet
+      )
+      SELECT * EXCEPT(last_modified)
+      FROM joined
+      QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY rental_id
+        ORDER BY last_modified DESC
+      ) = 1;

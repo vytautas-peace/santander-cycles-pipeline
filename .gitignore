@@ -1,0 +1,38 @@
+# Secrets & credentials
+.env
+.env_encoded
+secrets/**
+*.json
+.bruin.yml
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.*
+**/terraform.tfvars
+
+# Data / caches
+kestra/data/
+*.csv
+*.parquet
+*.duckdb
+*.db
+
+# OS / IDE / agent state
+.DS_Store
+.vscode/
+.idea/
+.claude/
+*.swp
+
+# Local backups
+backup/

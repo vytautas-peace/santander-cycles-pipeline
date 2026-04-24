@@ -1,0 +1,74 @@
+id: guide
+namespace: prod
+
+inputs:
+
+  - id: project
+    type: STRING
+    defaults: san-cycles-data-pipe
+
+  - id: location
+    type: STRING
+    defaults: asia-southeast1
+
+  - id: bucket
+    type: STRING
+    defaults: san-cycles-data-pipe-bkt
+
+  - id: start_date
+    type: DATE
+    defaults: "2012-01-01"
+
+  - id: end_date
+    type: DATE
+    defaults: "2025-12-31"
+
+
+tasks:
+
+  - id: source_
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: prod
+    flowId: source_
+    wait: true
+    inputs:
+      project: "{{ inputs.project }}"
+      location: "{{ inputs.location }}"
+      start_date: "{{ inputs.start_date }}"
+      end_date: "{{ inputs.end_date }}"
+    transmitFailed: true
+  
+  - id: ingest
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: prod
+    flowId: ingest
+    wait: true
+    inputs:
+      project: "{{ inputs.project }}"
+      location: "{{ inputs.location }}"
+      bucket: "{{ inputs.bucket }}"
+    transmitFailed: true
+
+  - id: transform
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: prod
+    flowId: transform
+    wait: true
+    inputs:
+      project: "{{ inputs.project }}"
+      location: "{{ inputs.location }}"
+      start_date: "{{ inputs.start_date }}"
+      end_date: "{{ inputs.end_date }}"
+    transmitFailed: true
+
+  - id: serve
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: prod
+    flowId: serve
+    wait: true
+    inputs:
+      project: "{{ inputs.project }}"
+      location: "{{ inputs.location }}"
+      start_date: "{{ inputs.start_date }}"
+      end_date: "{{ inputs.end_date }}"
+    transmitFailed: true

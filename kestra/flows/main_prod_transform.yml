@@ -1,0 +1,78 @@
+id: transform
+namespace: prod
+
+inputs:
+  - id: project
+    type: STRING
+    defaults: san-cycles-data-pipe
+
+  - id: location
+    type: STRING
+    defaults: asia-southeast1
+
+  - id: start_date
+    type: DATE
+    defaults: "2012-01-01"
+    
+  - id: end_date
+    type: DATE
+    defaults: "2025-12-31"
+
+tasks:
+
+  - id: create_schema_transform
+    type: io.kestra.plugin.gcp.bigquery.Query
+    serviceAccount: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
+    projectId: "{{ inputs.project }}"
+    location: "{{ inputs.location }}"
+    sql: |
+      CREATE SCHEMA IF NOT EXISTS `{{ inputs.project }}.transform`
+        OPTIONS (location = '{{ inputs.location }}');
+
+  - id: create_view_transform_journeys
+    type: io.kestra.plugin.gcp.bigquery.Query
+    serviceAccount: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
+    projectId: "{{ inputs.project }}"
+    location: "{{ inputs.location }}"
+    sql: |
+      CREATE OR REPLACE VIEW `{{ inputs.project }}.transform.journeys`
+      AS
+      SELECT
+        rental_id,
+        start_datetime,
+        end_datetime,
+        IF(duration_s > 0, duration_s, NULL) AS duration_s,
+        IF(TIMESTAMP_DIFF(end_datetime, start_datetime, SECOND) > 0,
+           TIMESTAMP_DIFF(end_datetime, start_datetime, SECOND),
+           NULL) AS duration_s_derived,
+        start_station_id,
+        end_station_id,
+        bike_id,
+        end_station_priority_id,
+        start_station_name,
+        bike_model,
+        _ingested_at,
+        filename_source,
+        filename_parquet
+      FROM `{{ inputs.project }}.ingest.journeys`
+      WHERE EXTRACT(YEAR FROM start_datetime) >= 2012
+        AND DATE(start_datetime) >= DATE('{{ inputs.start_date }}')
+        AND DATE(start_datetime) <= DATE('{{ inputs.end_date }}');
+
+  - id: create_view_transform_dim_stations
+    type: io.kestra.plugin.gcp.bigquery.Query
+    serviceAccount: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
+    projectId: "{{ inputs.project }}"
+    location: "{{ inputs.location }}"
+    sql: |
+      CREATE OR REPLACE VIEW `{{ inputs.project }}.transform.dim_stations` AS
+      SELECT
+        start_station_id   AS station_id,
+        start_station_name AS station_name
+      FROM `{{ inputs.project }}.transform.journeys`
+      WHERE start_station_id   IS NOT NULL
+        AND start_station_name IS NOT NULL
+      QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY start_station_id
+        ORDER BY start_station_name DESC
+      ) = 1;

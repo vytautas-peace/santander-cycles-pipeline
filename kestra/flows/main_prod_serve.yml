@@ -1,0 +1,149 @@
+id: serve
+namespace: prod
+
+inputs:
+  - id: project
+    type: STRING
+    defaults: san-cycles-data-pipe
+
+  - id: location
+    type: STRING
+    defaults: asia-southeast1
+
+  - id: start_date
+    type: DATE
+    defaults: "2012-01-01"
+    
+  - id: end_date
+    type: DATE
+    defaults: "2025-12-31"
+
+
+tasks:
+
+  - id: create_schema_serve
+    type: io.kestra.plugin.gcp.bigquery.Query
+    serviceAccount: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
+    projectId: "{{ inputs.project }}"
+    location: "{{ inputs.location }}"
+    sql: |
+      CREATE SCHEMA IF NOT EXISTS `{{ inputs.project }}.serve`
+        OPTIONS (location = '{{ inputs.location }}');
+
+  - id: fill_table_serve_fct_journeys
+    type: io.kestra.plugin.gcp.bigquery.Query
+    serviceAccount: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
+    projectId: "{{ inputs.project }}"
+    location: "{{ inputs.location }}"
+    sql: |
+      CREATE OR REPLACE TABLE `{{ inputs.project }}.serve.fct_journeys`
+      PARTITION BY DATETIME_TRUNC(start_datetime, MONTH)
+      CLUSTER BY bike_id, start_station_id AS
+      SELECT
+        rental_id,
+        bike_id,
+        bike_model,
+        start_datetime,
+        end_datetime,
+        CASE
+          WHEN duration_s > 0 THEN duration_s
+          WHEN duration_s IS NULL AND duration_s_derived IS NOT NULL THEN duration_s_derived
+        END AS duration_s,
+        start_station_id,
+        start_station_name,
+        end_station_id,
+        s.station_name AS end_station_name,
+        _ingested_at,
+        filename_source,
+        filename_parquet
+      FROM `{{ inputs.project }}.transform.journeys` j
+      LEFT JOIN `{{ inputs.project }}.transform.dim_stations` s
+        ON j.end_station_id = s.station_id
+      WHERE DATE(start_datetime) >= DATE('{{ inputs.start_date }}')
+        AND DATE(start_datetime) <= DATE('{{ inputs.end_date }}');
+
+  - id: fill_table_serve_dashboard
+    type: io.kestra.plugin.gcp.bigquery.Query
+    serviceAccount: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
+    projectId: "{{ inputs.project }}"
+    location: "{{ inputs.location }}"
+    sql: |
+      CREATE OR REPLACE TABLE `{{ inputs.project }}.serve.dashboard` AS
+      WITH monthly AS (
+        SELECT
+          DATETIME_TRUNC(start_datetime, MONTH) AS journey_month,
+          bike_id,
+          COUNT(*)                         AS total_journeys,
+          ROUND(SUM(duration_s) / 3600.0, 3) AS total_hours
+        FROM `{{ inputs.project }}.serve.fct_journeys`
+        WHERE bike_id IS NOT NULL
+          AND duration_s IS NOT NULL
+          AND DATE(start_datetime) >= DATE('{{ inputs.start_date }}')
+          AND DATE(start_datetime) <= DATE('{{ inputs.end_date }}')
+        GROUP BY 1, 2
+      ),
+
+      -- Tile 1: top bike per year
+      top_bike_yearly AS (
+        SELECT
+          EXTRACT(YEAR FROM journey_month) AS year,
+          bike_id,
+          SUM(total_journeys)              AS total_journeys,
+          ROUND(SUM(total_hours), 1)       AS total_hours,
+          'top_bike' AS tile
+        FROM monthly
+        GROUP BY 1, 2
+        QUALIFY ROW_NUMBER() OVER (
+          PARTITION BY year
+          ORDER BY total_hours DESC
+        ) = 1
+      ),
+
+      -- Tile 2: seasonal totals
+      seasonal AS (
+        SELECT
+          EXTRACT(YEAR FROM journey_month) AS year,
+          CASE
+            WHEN EXTRACT(MONTH FROM journey_month) IN (3, 4, 5)   THEN 'Spring'
+            WHEN EXTRACT(MONTH FROM journey_month) IN (6, 7, 8)   THEN 'Summer'
+            WHEN EXTRACT(MONTH FROM journey_month) IN (9, 10, 11) THEN 'Autumn'
+            ELSE 'Winter'
+          END                              AS season,
+          SUM(total_journeys)              AS total_journeys,
+          'seasonal' AS tile
+        FROM monthly
+        GROUP BY 1, 2
+      ),
+
+      -- Tile 3: monthly time series
+      monthly_totals AS (
+        SELECT
+          journey_month,
+          SUM(total_journeys) AS total_journeys,
+          'monthly' AS tile
+        FROM monthly
+        GROUP BY 1
+      )
+
+      SELECT year, bike_id, total_journeys, total_hours,
+             CAST(NULL AS STRING) AS season,
+             CAST(NULL AS DATE)   AS journey_month,
+             tile
+      FROM top_bike_yearly
+      UNION ALL
+      SELECT year, CAST(NULL AS INT64),
+             total_journeys,
+             CAST(NULL AS FLOAT64),
+             season,
+             CAST(NULL AS DATE),
+             tile
+      FROM seasonal
+      UNION ALL
+      SELECT CAST(NULL AS INT64),
+             CAST(NULL AS INT64),
+             total_journeys,
+             CAST(NULL AS FLOAT64),
+             CAST(NULL AS STRING),
+             CAST(journey_month AS DATE),
+             tile
+      FROM monthly_totals;
