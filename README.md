@@ -227,6 +227,16 @@ This encodes the GCP service account key into `secrets/.env_encoded` (consumed b
 
 You can also trigger manually from the Kestra UI under the `prod` namespace.
 
+### 3. Monitor progress and view the dashboard
+
+Kestra process dashboard, Gantt charts and logs are available  at[localhost:8080](localhost:8080) with login details:
+
+```
+username: admin@kestra.io
+password: Admin1234!
+```
+
+After the completion of `serve` flow, dashboard becomes available at [localhost:8501](localhost:8501).
 
 ---
 

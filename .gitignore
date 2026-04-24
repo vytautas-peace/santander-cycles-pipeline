@@ -28,7 +28,7 @@ kestra/data/
 *.db
 
 # OS / IDE / agent state
-.DS_Store
+**/.DS_Store
 .vscode/
 .idea/
 .claude/
