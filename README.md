@@ -1,6 +1,6 @@
 # Santander Cycles Data Pipeline
 
-An end-to-end batch data pipeline that ingests **TfL Santander Cycles** journey data from the [cycling.data.tfl.gov.uk](https://cycling.data.tfl.gov.uk) open data portal, transforms it through staging and mart layers, and surfaces insights in a Streamlit dashboard.
+An end-to-end batch data pipeline that ingests **TfL Santander Cycles** journey data from the [cycling.data.tfl.gov.uk](https://cycling.data.tfl.gov.uk) open data portal, transforms it through the transform and serve layers, and surfaces insights in a Streamlit dashboard.
 
 ---
 
@@ -14,7 +14,7 @@ TfL publishes weekly CSV files of every Santander Cycles journey in London — o
 
 This pipeline shows the beauty of data engineering by:
 
-1. **Keeping it elegant** — infrastructure is managed by Terraform; flows orchestrated by Kestra; data processing done in BigQuery; containerisaton done by Docker; Streamlit for dashboard-as-code. All tools are open source.
+1. **Keeping it elegant** — infrastructure is managed by Terraform; flows orchestrated by Kestra; data processing done in BigQuery; containerisation done by Docker; Streamlit for dashboard-as-code. All tools are open source.
 
 2. **Working at scale** — reads data from 500+ files with creatively disparate naming schemas and 9 column header schemas, resolving encoding issues and typical CSV data problems along the way.
 
@@ -158,7 +158,7 @@ Create a GCP project at [console.cloud.google.com](https://console.cloud.google.
 
 ### 3. Open a GitHub Codespace
 
-From the repo page, **Code → Codespaces → Create codespace on main**. The Codespace comes with `git` and `docker` pre-installed.
+From the repo page, **Code → Codespaces → ⋯ → New with options**, then pick the 4-core / 16 GB machine. The Codespace comes with `git` and `docker` pre-installed.
 
 
 ### 4. Create `.env`
@@ -175,7 +175,7 @@ Edit `.env`:
 export GCLOUD_PROJECT=<your-project-id>
 export LOCATION=<your-region>                    # e.g. asia-southeast1
 export GCS_BKT="${GCLOUD_PROJECT}-bkt"
-export START_DATE="2012-01-01"                   # The project can be run for any selected date range. 
+export START_DATE="2012-01-01"                   # The project can be run for any selected date range.
 export END_DATE="2025-12-31"                     # Recommendation: run full years.
 export GOOGLE_APPLICATION_CREDENTIALS=secrets/gcp-sa-key.json
 export TF_VAR_credentials=../secrets/terraform-sa-key.json
@@ -226,13 +226,22 @@ make docker-up
 
 Encodes the GCP service account key into `secrets/.env_encoded` (consumed by Kestra as a secret) and brings up Kestra, its Postgres, and the Streamlit dashboard.
 
+It may take a bit of time to pull the Kestra image.
+
 ### 2. Trigger the `guide` flow
+
+Give Kestra 20s to start before executing the command below.
 
 ```bash
 make kestra-lets-flow
 ```
 
-Triggers the `prod.guide` flow via the Kestra API with the date range and project from `.env`. You can also trigger manually from the Kestra UI under the `prod` namespace.
+Triggers the `prod.guide` flow via the Kestra API with the date range and project from `.env`. You will know that the command has worked if terminal output ends with something like `http://localhost:8080/ui/main/executions/prod/guide/5BBjy0dQFMNxDyVDl3OmpQ"}`. Otherwise, try again.
+
+
+You can also trigger manually and monitor status from the Kestra UI under the `prod` namespace.
+
+
 
 ### 3. Monitor progress and view the dashboard
 
@@ -277,7 +286,7 @@ Python tasks running on the Kestra worker:
 
 - Creates `ingest` schema in BigQuery.
 - Registers an external table `ingest.journeys_ext` over `gs://<bucket>/parquet/*.parquet`.
-- Creates `ingest.journeys` view: joins the external table with `source.metadata` on `filename_parquet` and deduplicates by `rental_id` keeping the most recent row based on `last_modified` file attribute from TfL website.
+- Creates `ingest.journeys` view: joins the external table with `source.metadata` on `filename_parquet` and deduplicates by `rental_id` keeping the most recent row based on the `last_modified` file attribute from the TfL website.
 
 ### Transform layer
 
@@ -296,7 +305,7 @@ Python tasks running on the Kestra worker:
 
 Runs inside the Docker stack on `localhost:8501`, reading from `serve.dashboard`.
 
-**Tile 1 — Most loved bike of the year:** year selector, top bike by hours ridden with total rides and hours ridden.
+**Tile 1 — Most loved bike of the year:** year selector, top bike by hours ridden.
 
 **Tile 2 — Rides by season:** grouped bar chart by year, Spring / Summer / Autumn / Winter with matching colours.
 
@@ -317,4 +326,4 @@ Runs inside the Docker stack on `localhost:8501`, reading from `serve.dashboard`
 
 ---
 
-## Thanks for reading - and following along! ✨😌
+## Thanks for reading — and following along! ✨😌
