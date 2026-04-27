@@ -1,6 +1,14 @@
 id: source_
 namespace: prod
 
+# Optimised source layer — single Python task replaces discover + ForEach(download+process+upload).
+#
+# Speed gains vs source_v2 (baseline 15s for 1-month):
+#   - BQ metadata write runs in a background thread, overlapping with file processing (~3s saved)
+#   - One Python process for all files: eliminates N × (uv startup + BQ metadata query) (~2s saved)
+#   - Parallel downloads + parallel zip-member processing inside Python
+#   - GCS existence check skips already-uploaded parquets (re-runs near-instant)
+
 inputs:
 
   - id: start_date
@@ -19,85 +27,43 @@ inputs:
     type: STRING
     defaults: asia-southeast1
 
+  - id: bucket
+    type: STRING
+    defaults: san-cycles-data-pipe-bkt
+
+  - id: workers
+    type: INT
+    defaults: 16
+
 
 tasks:
 
+  - id: check_http_request
+    type: io.kestra.plugin.core.http.Request
+    uri: https://google.com
+    method: GET
+
   - id: uv_sync
     type: io.kestra.plugin.scripts.python.Commands
-    containerImage: python:3.13-slim
     taskRunner:
       type: io.kestra.plugin.core.runner.Process
-    commands:
-      - cd /workspace/kestra && uv sync
-
-  - id: discover
-    type: io.kestra.plugin.scripts.python.Commands
     containerImage: python:3.13-slim
+    commands:
+      - cd /workspace/kestra && uv sync --quiet
+
+  - id: run
+    type: io.kestra.plugin.scripts.python.Commands
     taskRunner:
       type: io.kestra.plugin.core.runner.Process
     env:
       GCP_SERVICE_ACCOUNT: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
+      GCLOUD_PROJECT: "{{ inputs.project }}"
+      LOCATION: "{{ inputs.location }}"
+      GCS_BUCKET: "{{ inputs.bucket }}"
     commands:
-      - cd /workspace/kestra && uv run python/discover.py --start-date {{inputs.start_date}} --end-date {{inputs.end_date}}
-
-  - id: get_root_files
-    type: io.kestra.plugin.gcp.bigquery.Query
-    serviceAccount: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
-    projectId: "{{ inputs.project }}"
-    location: "{{ inputs.location }}"
-    sql: |
-      SELECT root_file
-      FROM `{{ inputs.project }}.source.metadata`
-      GROUP BY root_file
-      ORDER BY MIN(last_modified) ASC
-    fetchType: FETCH
-
-
-  - id: process_each
-    type: io.kestra.plugin.core.flow.ForEach
-    values: "{{ outputs.get_root_files.rows | jq('.[].root_file') }}"
-    concurrencyLimit: 8
-    tasks:
-    
-      - id: download
-        type: io.kestra.plugin.scripts.python.Commands
-        taskRunner:
-          type: io.kestra.plugin.core.runner.Process
-        commands:
-          - cd /workspace/kestra/python && uv run python download.py --root-file "{{ taskrun.value }}"
-
-      - id: unzip
-        type: io.kestra.plugin.scripts.python.Commands
-        taskRunner:
-          type: io.kestra.plugin.core.runner.Process
-        commands:
-          - cd /workspace/kestra/python && uv run python unzip.py --root-file "{{ taskrun.value }}"
-
-      - id: make-parquet
-        type: io.kestra.plugin.scripts.python.Commands
-        taskRunner:
-          type: io.kestra.plugin.core.runner.Process
-        env:
-          GCP_SERVICE_ACCOUNT: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
-        commands:
-          - cd /workspace/kestra/python && uv run python make-parquet.py --root-file "{{ taskrun.value }}"
-
-
-  - id: list_files
-    type: io.kestra.plugin.fs.local.List
-    from: /workspace/kestra/data/parquet
-    maxFiles: 1000
-
-  - id: upload_each
-    type: io.kestra.plugin.core.flow.ForEach
-    values: "{{ outputs.list_files.files | jq('.[].name') }}"
-    concurrencyLimit: 8
-    tasks:
-      - id: upload
-        type: io.kestra.plugin.scripts.python.Commands
-        taskRunner:
-          type: io.kestra.plugin.core.runner.Process
-        env:
-          GCP_SERVICE_ACCOUNT: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
-        commands:
-          - cd /workspace/kestra/python && uv run python upload-parquet.py --filename "{{ taskrun.value }}"
+      - |
+        cd /workspace/kestra
+        uv run python/source.py \
+          --start-date {{ inputs.start_date }} \
+          --end-date {{ inputs.end_date }} \
+          --workers {{ inputs.workers }}

@@ -94,7 +94,6 @@ santander-cycles-pipeline/
 ├── docker/
 │   └── docker-compose.yml           # Kestra + Postgres + Streamlit stack
 ├── kestra/
-│   ├── data/                        # Kestra directory for data processing (gitignored)
 │   ├── flows/                       # Kestra flow definitions
 │   │   ├── main_prod_guide.yml      # guide: top-level flow
 │   │   ├── main_prod_source_.yml    # source: discover ▸ download ▸ unzip ▸ parquet ▸ GCS
@@ -102,11 +101,8 @@ santander-cycles-pipeline/
 │   │   ├── main_prod_transform.yml  # transform: BQ views journeys, dim_stations
 │   │   └── main_prod_serve.yml      # serve: BQ tables fct_journeys, dashboard
 │   ├── python/                      # Polars-based ETL scripts
-│   │   ├── discover.py              # List TfL files, write metadata table
-│   │   ├── download.py              # Fetch zip/csv, cache locally
-│   │   ├── unzip.py                 # Extract zip archives
-│   │   ├── make-parquet.py          # Normalise CSV → Parquet (9 schemas, 4 date formats)
-│   │   └── upload-parquet.py        # Upload to GCS
+│   │   └── source.py                # List TfL files, write metadata table, fetch zip/csv, extract zip, normalize CSV → Parquet & uplaod to GCS
+|   └── .python-version
 │   ├── pyproject.toml
 │   └── uv.lock
 ├── secrets/                         # SA keys + encoded env (gitignored)
@@ -114,6 +110,7 @@ santander-cycles-pipeline/
 │   ├── gcp-sa-key.json              # Written by `make infra-apply` — pipeline SA key
 │   └── .env_encoded                 # Written by `make docker-up` — base64 SA key for Kestra
 ├── streamlit/
+|   ├── .python-version
 │   ├── dashboard.py                 # Reads serve.dashboard from BigQuery
 │   ├── main.py
 │   ├── santander_logo.svg
@@ -125,7 +122,7 @@ santander-cycles-pipeline/
 ├── .env                             # Local environment variables (gitignored)
 ├── .env_example                     # Template — copy to .env via `make env`
 ├── .gitignore
-├── Makefile                         # env, infra-apply, docker-up, kestra-lets-flow, ...
+├── Makefile                         # env, infra-apply, docker-up, kestra-flow, ...
 └── README.md
 ```
 
@@ -174,11 +171,8 @@ Edit `.env`:
 ```bash
 export GCLOUD_PROJECT=<your-project-id>
 export LOCATION=<your-region>                    # e.g. asia-southeast1
-export GCS_BKT="${GCLOUD_PROJECT}-bkt"
 export START_DATE="2012-01-01"                   # The project can be run for any selected date range.
 export END_DATE="2025-12-31"                     # Recommendation: run full years.
-export GOOGLE_APPLICATION_CREDENTIALS=secrets/gcp-sa-key.json
-export TF_VAR_credentials=../secrets/terraform-sa-key.json
 ```
 
 
@@ -226,17 +220,15 @@ make docker-up
 
 Encodes the GCP service account key into `secrets/.env_encoded` (consumed by Kestra as a secret) and brings up Kestra, its Postgres, and the Streamlit dashboard.
 
-It may take a bit of time to pull the Kestra image.
-
 ### 2. Trigger the `guide` flow
 
 Give Kestra 20s to start before executing the command below.
 
 ```bash
-make kestra-lets-flow
+make kestra-flow
 ```
 
-Triggers the `prod.guide` flow via the Kestra API with the date range and project from `.env`. You will know that the command has worked if terminal output ends with something like `http://localhost:8080/ui/main/executions/prod/guide/5BBjy0dQFMNxDyVDl3OmpQ"}`. Otherwise, try again.
+Triggers the `prod.guide` flow via the Kestra API with the date range and project from `.env`. You will know that the command has worked if terminal output ends with something like `http://localhost:8080/ui/main/executions/prod/guide/5BBjy0dQFMNxDyVDl3OmpQ`. Otherwise, try again.
 
 
 You can also trigger manually and monitor status from the Kestra UI under the `prod` namespace.

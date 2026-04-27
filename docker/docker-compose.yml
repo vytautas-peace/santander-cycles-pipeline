@@ -1,7 +1,5 @@
 volumes:
-  kestra-postgres-data:
-    driver: local
-  kestra-data:
+  postgres-data:
     driver: local
 
 services:
@@ -9,7 +7,7 @@ services:
   kestra-postgres:
     image: postgres:18
     volumes:
-      - kestra-postgres-data:/var/lib/postgresql
+      - postgres-data:/var/lib/postgresql
     environment:
       POSTGRES_DB: kestra
       POSTGRES_USER: kestra
@@ -21,19 +19,21 @@ services:
       retries: 10
 
   kestra:
-    image: kestra/kestra:v1.3
+    image: kestra/kestra:v1.3-no-plugins
     pull_policy: missing
     stop_grace_period: 6m
     user: "root"
-    command: server standalone
+    entrypoint: /bin/sh -c "
+      /app/kestra plugins install io.kestra.plugin:plugin-script-python:1.7.0 && \
+      /app/kestra plugins install io.kestra.plugin:plugin-gcp:2.2.0 && \
+      /app/kestra server standalone"
     volumes:
-      - kestra-data:/app/storage
+      - /tmp/kestra-storage:/app/storage
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/kestra-wd:/tmp/kestra-wd
       - ../:/workspace
     env_file: ../secrets/.env_encoded
     environment:
-      UV_PROJECT_ENVIRONMENT: /tmp/kestra-venv
       KESTRA_CONFIGURATION: |
         micronaut:
           io:
@@ -68,13 +68,7 @@ services:
             enabled: false
           worker:
             instance:
-              partitions: 10
-          plugins: 
-            configurations: 
-              - type: io.kestra.plugin.fs.local.List
-                values: 
-                  allowed-paths: 
-                    - /workspace
+              partitions: 24
     ports:
       - "8080:8080"
       - "8081:8081"

@@ -8,8 +8,4 @@ dependencies = [
     "google-cloud-storage>=2.18",
     "requests>=2.31",
     "polars>=1.39.3",
-    "streamlit>=1.55.0",
-    "plotly>=6.6.0",
-    "duckdb>=1.5.1",
-    "fastexcel>=0.19.0",
 ]

@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: env infra-apply infra-destroy docker-up docker-down docker-down-v kestra-lets-flow
+.PHONY: env infra-apply infra-destroy docker-up docker-down docker-down-v kestra-flow claude-code
 
 env:
 	mv .env_example .env
@@ -13,7 +13,7 @@ docker-up:
 	echo "SECRET_GCP_SERVICE_ACCOUNT=$$(base64 < secrets/gcp-sa-key.json | tr -d '\n')" > secrets/.env_encoded && \
 	cd docker && docker compose up -d
 
-kestra-lets-flow:
+kestra-flow:
 	source .env && \
 	curl -v -u 'admin@kestra.io:Admin1234!' \
 		"http://localhost:8080/api/v1/executions/prod/guide" \
@@ -31,3 +31,6 @@ docker-down-v:
 
 infra-destroy:
 	source .env && cd terraform && terraform destroy
+
+claude-code:
+	curl -fsSL https://claude.ai/install.sh | bash
