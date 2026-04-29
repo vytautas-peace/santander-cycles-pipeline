@@ -44,9 +44,7 @@ tasks:
         bike_id,
         bike_model,
         start_datetime,
-        UNIX_MILLIS(start_datetime)                                      AS start_datetime_epoch_ms,
         end_datetime,
-        UNIX_MILLIS(end_datetime)                                        AS end_datetime_epoch_ms,
         CASE
           WHEN duration_s > 0 THEN duration_s
           WHEN duration_s IS NULL AND duration_s_derived IS NOT NULL THEN duration_s_derived
