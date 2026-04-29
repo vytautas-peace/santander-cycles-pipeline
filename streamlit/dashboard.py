@@ -6,6 +6,7 @@ import base64
 import os
 from pathlib import Path
 
+import altair as alt
 import polars as pl
 import plotly.graph_objects as go
 import streamlit as st
@@ -18,8 +19,13 @@ st.set_page_config(
     layout="wide",
 )
 
+
 PROJECT_ID = os.environ["GCLOUD_PROJECT"]
 SANTANDER_RED = "#EC0000"
+AXIS_FONT = "sans-serif"
+AXIS_COLOR = "#6b7280"
+AXIS_LABEL_SIZE = 13
+AXIS_TITLE_SIZE = 16
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -34,9 +40,9 @@ SQL = f"SELECT * FROM `{PROJECT_ID}.serve.dashboard`"
 with st.spinner("Loading data…"):
     raw = run_query(SQL)
 
-top_bikes = raw.filter(pl.col("tile") == "top_bike")
 seasonal  = raw.filter(pl.col("tile") == "seasonal")
 monthly   = raw.filter(pl.col("tile") == "monthly")
+hourly_weekday = raw.filter(pl.col("tile") == "hourly_weekday").rename({"total_journeys": "rental_count"})
 
 # ── Header ─────────────────────────────────────────────────────────────────────
 logo_path = Path(__file__).parent / "santander_logo.svg"
@@ -57,24 +63,93 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 st.divider()
 
-# ── Tile 1: Most loved bike of the year ───────────────────────────────────────
-years    = top_bikes["year"].drop_nulls().unique().sort(descending=True).to_list()
+# ── Tile 1: When London rides ─────────────────────────────────────────────────
+st.header("🚴 When does London ride? Hour × day-of-week heatmap")
+st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
-col_title, col_select = st.columns([7, 2])
-with col_title:
-    st.header("🏆 Most loved bike of the year")
-with col_select:
-    st.markdown("<br>", unsafe_allow_html=True)
-    selected_year = st.selectbox("Year", years, index=0, label_visibility="collapsed")
+source = hourly_weekday
 
-top_bike = top_bikes.filter(pl.col("year") == selected_year).row(0, named=True)
+# Size of the hexbins
+size = 19
+# Count of distinct x features
+xFeaturesCount = 24
+# Count of distinct y features
+yFeaturesCount = 7
 
-col1, col2, col3 = st.columns(3)
-col1.metric("Bike ID",         f"#{top_bike['bike_id']}")
-col2.metric("Total journeys",     f"{top_bike['total_journeys']:,}")
-col3.metric("Hours in saddle", f"{top_bike['total_hours']:,.1f}")
+chart_padding = size * 0.15
+
+CHART_MAX_WIDTH = round(size * xFeaturesCount * 2 * 1.19,0)
+
+# the shape of a hexagon
+hexagon = "M0,-2.3094010768L2,-1.1547005384 2,1.1547005384 0,2.3094010768 -2,1.1547005384 -2,-1.1547005384Z"
+
+chart_hourly_weekday = alt.Chart(source).mark_point(size=size**2, shape=hexagon).encode(
+    alt.X('xFeaturePos:Q')
+        .title('Hour')
+        .axis(
+            grid=False,
+            labelPadding=7,
+            tickOpacity=0,
+            domainOpacity=0,
+            labels=True
+            #values=list(range(25)),
+            #format='d',
+        ),
+    alt.Y('day_name:N')
+        .title('Weekday')
+        .sort(alt.SortField('day_num'))
+        .axis(labelPadding=25, tickOpacity=0, domainOpacity=0),
+    stroke=alt.value('black'),
+    strokeWidth=alt.value(0.2),
+    fill=alt.Fill('sum(rental_count):Q')
+        .title('Rentals')
+        .scale(scheme='goldred'),
+    tooltip=[
+        alt.Tooltip('hour:Q', title='Hour'),
+        alt.Tooltip('day_name:N', title='Day'),
+        alt.Tooltip('sum(rental_count):Q', title='Rentals', format=',')
+    ]
+).transform_calculate(
+    # This field is required for the hexagonal X-Offset
+    xFeaturePos='(datum.day_num % 2) / 2 + datum.hour'
+).properties(
+    # Exact scaling factors to make the hexbins fit
+    width=size * xFeaturesCount * 2 * 1.20, # 1.2x factor to fix Streamlit vs Marimo rendering
+    height=size * yFeaturesCount * 1.7320508076 * 1.30,  # 1.7320508076 is approx. sin(60°)*2
+    padding={
+        "top": chart_padding # Adding padding to fix Streamlit cutting off top of hexagons
+    },
+).configure_axis(
+    labelFont=AXIS_FONT,
+    labelFontSize=AXIS_LABEL_SIZE,
+    labelColor=AXIS_COLOR,
+    titleFont=AXIS_FONT,
+    titleFontSize=AXIS_TITLE_SIZE,
+    titleFontWeight='normal',
+    titleColor=AXIS_COLOR,
+).configure_legend(
+    offset=30,            # Distance from the right side of the hexes to the legend
+    titlePadding=20,          # Space between "Rentals" and the bar
+    labelAlign='left',        # Force alignment away from the bar
+    labelOffset=15,       # Distance from the color bar to the text labels (e.g., 2,000,000)
+    gradientLength=210,   # Makes the color bar taller to match your 2x chart height
+    gradientThickness=20,
+    titleFont=AXIS_FONT,
+    titleFontSize=AXIS_TITLE_SIZE,
+    titleFontWeight='normal',
+    titleColor=AXIS_COLOR,
+    labelFont=AXIS_FONT,
+    labelFontSize=AXIS_LABEL_SIZE,
+    labelColor=AXIS_COLOR,
+    labelFontWeight='normal',
+).configure_view(
+    strokeWidth=0
+)
+
+st.altair_chart(chart_hourly_weekday, width="content", theme=None)
 
 st.divider()
+
 
 # ── Tile 2: Rides by season & year ────────────────────────────────────────────
 st.header("🌦️ Rides by season")
@@ -100,7 +175,7 @@ for season in SEASON_ORDER:
 fig2.update_layout(
     barmode="group",
     xaxis=dict(title="Year", tickmode="linear", dtick=1),
-    yaxis=dict(title="Number of trips"),
+    yaxis=dict(title="Total journeys"),
     legend=dict(
         orientation="h",
         yanchor="bottom", y=1.02,
@@ -110,10 +185,26 @@ fig2.update_layout(
     margin=dict(t=40, b=40),
     height=450,
 )
-fig2.update_xaxes(showgrid=False, showline=True, linewidth=1, linecolor="#888")
-fig2.update_yaxes(gridcolor="#ccc", gridwidth=1, showline=True, linewidth=1, linecolor="#888")
+fig2.update_xaxes(
+    showgrid=False,
+    showline=True,
+    linewidth=1,
+    linecolor="#888",
+    title_font=dict(family=AXIS_FONT, size=AXIS_TITLE_SIZE, color=AXIS_COLOR),
+    tickfont=dict(family=AXIS_FONT, size=AXIS_LABEL_SIZE, color=AXIS_COLOR),
+)
+fig2.update_yaxes(
+    gridcolor="#ccc",
+    gridwidth=1,
+    showline=True,
+    linewidth=1,
+    linecolor="#888",
+    title_font=dict(family=AXIS_FONT, size=AXIS_TITLE_SIZE, color=AXIS_COLOR),
+    tickfont=dict(family=AXIS_FONT, size=AXIS_LABEL_SIZE, color=AXIS_COLOR),
+)
 
-st.plotly_chart(fig2, width='stretch')
+fig2.update_layout(width=CHART_MAX_WIDTH)
+st.plotly_chart(fig2, width="content")
 
 st.divider()
 
@@ -132,14 +223,32 @@ fig3.add_trace(go.Scatter(
 ))
 
 fig3.update_layout(
-    xaxis=dict(title="Month"),
+    xaxis=dict(title="Year"),
     yaxis=dict(title="Total journeys"),
     plot_bgcolor="white",
     margin=dict(t=40, b=40),
     height=450,
     showlegend=False,
 )
-fig3.update_xaxes(showgrid=False, showline=True, linewidth=1, linecolor="#888")
-fig3.update_yaxes(gridcolor="#ccc", gridwidth=1, showline=True, linewidth=1, linecolor="#888")
+fig3.update_xaxes(
+    showgrid=False,
+    showline=True,
+    linewidth=1,
+    linecolor="#888",
+    dtick="M12",
+    tickformat="%Y",
+    title_font=dict(family=AXIS_FONT, size=AXIS_TITLE_SIZE, color=AXIS_COLOR),
+    tickfont=dict(family=AXIS_FONT, size=AXIS_LABEL_SIZE, color=AXIS_COLOR),
+)
+fig3.update_yaxes(
+    gridcolor="#ccc",
+    gridwidth=1,
+    showline=True,
+    linewidth=1,
+    linecolor="#888",
+    title_font=dict(family=AXIS_FONT, size=AXIS_TITLE_SIZE, color=AXIS_COLOR),
+    tickfont=dict(family=AXIS_FONT, size=AXIS_LABEL_SIZE, color=AXIS_COLOR),
+)
 
-st.plotly_chart(fig3, width='stretch')
+fig3.update_layout(width=CHART_MAX_WIDTH)
+st.plotly_chart(fig3, width="content")

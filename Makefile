@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: env infra-apply infra-destroy docker-up docker-down docker-down-v kestra-flow claude-code
+.PHONY: env infra-apply infra-destroy docker-up docker-down docker-down-v kestra-flow marimo-explore
 
 env:
 	mv .env_example .env
@@ -23,14 +23,16 @@ kestra-flow:
 		-F start_date="$${START_DATE}" \
 		-F end_date="$${END_DATE}"
 
+marimo-explore:
+	source .env && \
+	cd marimo-nb && \
+	uv run marimo edit explore.py
+
 docker-down:
-	cd docker && docker compose down
+	cd docker && docker compose down -t 1
 
 docker-down-v:
-	cd docker && docker compose down -v
+	cd docker && docker compose down -v -t 1
 
 infra-destroy:
 	source .env && cd terraform && terraform destroy
-
-claude-code:
-	curl -fsSL https://claude.ai/install.sh | bash

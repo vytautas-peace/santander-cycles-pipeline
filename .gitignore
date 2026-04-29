@@ -33,6 +33,8 @@ kestra/data/
 .idea/
 .claude/
 *.swp
+CLAUDE.md
+.codex
 
 # Local backups
 backup/

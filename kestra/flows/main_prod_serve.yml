@@ -44,7 +44,9 @@ tasks:
         bike_id,
         bike_model,
         start_datetime,
+        UNIX_MILLIS(start_datetime)                                      AS start_datetime_epoch_ms,
         end_datetime,
+        UNIX_MILLIS(end_datetime)                                        AS end_datetime_epoch_ms,
         CASE
           WHEN duration_s > 0 THEN duration_s
           WHEN duration_s IS NULL AND duration_s_derived IS NOT NULL THEN duration_s_derived
@@ -69,81 +71,81 @@ tasks:
     location: "{{ inputs.location }}"
     sql: |
       CREATE OR REPLACE TABLE `{{ inputs.project }}.serve.dashboard` AS
-      WITH monthly AS (
-        SELECT
-          DATETIME_TRUNC(start_datetime, MONTH) AS journey_month,
-          bike_id,
-          COUNT(*)                         AS total_journeys,
-          ROUND(SUM(duration_s) / 3600.0, 3) AS total_hours
+      WITH dashboard_base AS (
+        SELECT start_datetime
         FROM `{{ inputs.project }}.serve.fct_journeys`
-        WHERE bike_id IS NOT NULL
-          AND duration_s IS NOT NULL
-          AND DATE(start_datetime) >= DATE('{{ inputs.start_date }}')
+        WHERE DATE(start_datetime) >= DATE('{{ inputs.start_date }}')
           AND DATE(start_datetime) <= DATE('{{ inputs.end_date }}')
-        GROUP BY 1, 2
       ),
 
-      -- Tile 1: top bike per year
-      top_bike_yearly AS (
+      -- Tile 1: weekday/hour hexbin
+      hourly_weekday AS (
         SELECT
-          EXTRACT(YEAR FROM journey_month) AS year,
-          bike_id,
-          SUM(total_journeys)              AS total_journeys,
-          ROUND(SUM(total_hours), 1)       AS total_hours,
-          'top_bike' AS tile
-        FROM monthly
-        GROUP BY 1, 2
-        QUALIFY ROW_NUMBER() OVER (
-          PARTITION BY year
-          ORDER BY total_hours DESC
-        ) = 1
+          'hourly_weekday' AS tile,
+          CAST(NULL AS INT64) AS year,
+          COUNT(*) AS total_journeys,
+          CAST(NULL AS STRING) AS season,
+          CAST(NULL AS DATE) AS journey_month,
+          EXTRACT(HOUR FROM start_datetime) AS hour,
+          EXTRACT(DAYOFWEEK FROM start_datetime) AS day_num,
+          FORMAT_DATE('%a', DATE(start_datetime)) AS day_name
+        FROM dashboard_base
+        GROUP BY hour, day_num, day_name
+      ),
+
+      monthly_counts AS (
+        SELECT
+          DATE_TRUNC(DATE(start_datetime), MONTH) AS journey_month,
+          COUNT(*) AS total_journeys
+        FROM dashboard_base
+        GROUP BY 1
       ),
 
       -- Tile 2: seasonal totals
       seasonal AS (
         SELECT
-          EXTRACT(YEAR FROM journey_month) AS year,
-          CASE
-            WHEN EXTRACT(MONTH FROM journey_month) IN (3, 4, 5)   THEN 'Spring'
-            WHEN EXTRACT(MONTH FROM journey_month) IN (6, 7, 8)   THEN 'Summer'
-            WHEN EXTRACT(MONTH FROM journey_month) IN (9, 10, 11) THEN 'Autumn'
-            ELSE 'Winter'
-          END                              AS season,
-          SUM(total_journeys)              AS total_journeys,
-          'seasonal' AS tile
-        FROM monthly
-        GROUP BY 1, 2
+          'seasonal' AS tile,
+          year,
+          SUM(total_journeys) AS total_journeys,
+          season,
+          CAST(NULL AS DATE) AS journey_month,
+          CAST(NULL AS INT64) AS hour,
+          CAST(NULL AS INT64) AS day_num,
+          CAST(NULL AS STRING) AS day_name
+        FROM (
+          SELECT
+            EXTRACT(YEAR FROM journey_month) AS year,
+            total_journeys,
+            CASE
+              WHEN EXTRACT(MONTH FROM journey_month) IN (3, 4, 5)   THEN 'Spring'
+              WHEN EXTRACT(MONTH FROM journey_month) IN (6, 7, 8)   THEN 'Summer'
+              WHEN EXTRACT(MONTH FROM journey_month) IN (9, 10, 11) THEN 'Autumn'
+              ELSE 'Winter'
+            END AS season
+          FROM monthly_counts
+        )
+        GROUP BY year, season
       ),
 
       -- Tile 3: monthly time series
-      monthly_totals AS (
+      monthly AS (
         SELECT
+          'monthly' AS tile,
+          CAST(NULL AS INT64) AS year,
+          total_journeys,
+          CAST(NULL AS STRING) AS season,
           journey_month,
-          SUM(total_journeys) AS total_journeys,
-          'monthly' AS tile
-        FROM monthly
-        GROUP BY 1
+          CAST(NULL AS INT64) AS hour,
+          CAST(NULL AS INT64) AS day_num,
+          CAST(NULL AS STRING) AS day_name
+        FROM monthly_counts
       )
 
-      SELECT year, bike_id, total_journeys, total_hours,
-             CAST(NULL AS STRING) AS season,
-             CAST(NULL AS DATE)   AS journey_month,
-             tile
-      FROM top_bike_yearly
+      SELECT tile, year, total_journeys, season, journey_month, hour, day_num, day_name
+      FROM hourly_weekday
       UNION ALL
-      SELECT year, CAST(NULL AS INT64),
-             total_journeys,
-             CAST(NULL AS FLOAT64),
-             season,
-             CAST(NULL AS DATE),
-             tile
+      SELECT tile, year, total_journeys, season, journey_month, hour, day_num, day_name
       FROM seasonal
       UNION ALL
-      SELECT CAST(NULL AS INT64),
-             CAST(NULL AS INT64),
-             total_journeys,
-             CAST(NULL AS FLOAT64),
-             CAST(NULL AS STRING),
-             CAST(journey_month AS DATE),
-             tile
-      FROM monthly_totals;
+      SELECT tile, year, total_journeys, season, journey_month, hour, day_num, day_name
+      FROM monthly;

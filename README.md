@@ -81,7 +81,7 @@ Kestra orchestrates the code that moves data from the TfL portal through the **s
 | Extraction | Polars (Python) | Fast CSV parsing, handles 9 schema variants and 4 date formats in lazy plans. |
 | Lake | GCS | Parquet landing zone — cheap, decoupled from the warehouse. |
 | Warehouse | BigQuery | Serverless, columnar, handles 138M+ rows; partitioning + clustering. |
-| Dashboard | Streamlit | Python-native, looks ace! |
+| Dashboard | Streamlit + Altair + Plotly | Python-native, looks ace! |
 | AI assistant | Claude Code | Gets me through the mental loops, reliable, wild tech! |
 
 
@@ -102,7 +102,7 @@ santander-cycles-pipeline/
 │   │   └── main_prod_serve.yml      # serve: BQ tables fct_journeys, dashboard
 │   ├── python/                      # Polars-based ETL scripts
 │   │   └── source.py                # List TfL files, write metadata table, fetch zip/csv, extract zip, normalize CSV → Parquet & uplaod to GCS
-|   └── .python-version
+|   ├── .python-version
 │   ├── pyproject.toml
 │   └── uv.lock
 ├── secrets/                         # SA keys + encoded env (gitignored)
@@ -110,10 +110,15 @@ santander-cycles-pipeline/
 │   ├── gcp-sa-key.json              # Written by `make infra-apply` — pipeline SA key
 │   └── .env_encoded                 # Written by `make docker-up` — base64 SA key for Kestra
 ├── streamlit/
+│   ├── .streamlit/config.toml       # Streamlit theme/runtime config
 |   ├── .python-version
 │   ├── dashboard.py                 # Reads serve.dashboard from BigQuery
 │   ├── main.py
 │   ├── santander_logo.svg
+│   ├── pyproject.toml
+│   └── uv.lock
+├── marimo-nb/
+│   ├── explore.py                    # Exploratory charts and SQL sketches
 │   ├── pyproject.toml
 │   └── uv.lock
 ├── terraform/                       # GCP infra: GCS bucket, BQ datasets, pipeline SA
@@ -230,9 +235,7 @@ make kestra-flow
 
 Triggers the `prod.guide` flow via the Kestra API with the date range and project from `.env`. You will know that the command has worked if terminal output ends with something like `http://localhost:8080/ui/main/executions/prod/guide/5BBjy0dQFMNxDyVDl3OmpQ`. Otherwise, try again.
 
-
 You can also trigger manually and monitor status from the Kestra UI under the `prod` namespace.
-
 
 
 ### 3. Monitor progress and view the dashboard
@@ -246,7 +249,19 @@ password: Admin1234!
 
 After the completion of the `serve` flow, the dashboard becomes available at [http://localhost:8501](http://localhost:8501).
 
-### 4. Cleanup
+
+### 4. Check our exploratory Marimo notebook
+
+I found Marimo notebooks great for exploring the data with quick SQL cells and chart experiments.
+
+```bash
+make marimo-explore
+```
+
+This section comes "as is" - play around, modify SQL code and charts, use AI to add more exploratory charts based on your interests. I found this to be pretty fun :)
+
+
+### 5. Cleanup
 
 When you're done, tear everything down in this order:
 
@@ -268,11 +283,11 @@ The `guide` flow orchestrates four sequential layers:
 
 ### Source layer
 
-Python tasks running on the Kestra worker:
+Python task running on the Kestra worker:
 
-1. `discover.py` lists TfL files and writes a `source.metadata` table in BigQuery.
-2. For each root file (parallelised, concurrency 8): `download.py` → `unzip.py` → `make-parquet.py`. Polars normalises 9 column schemas and 4 date formats into a unified Parquet schema.
-3. `upload-parquet.py` uploads each Parquet to `gs://<bucket>/parquet/`. Parquet files are an efficient and elegant way to store source data, with 10x smaller size than CSV.
+1. `source.py` lists TfL files, writes a `source.metadata` table in BigQuery, and processes the date-windowed files.
+2. For each root file, it downloads CSV/zip/xlsx data, extracts zip members when needed, and uses Polars to normalise 9 column schemas and 4 date formats into a unified Parquet schema.
+3. It uploads each Parquet to `gs://<bucket>/parquet/`. Parquet files are an efficient and elegant way to store source data, with 10x smaller size than CSV.
 
 ### Ingest layer
 
@@ -288,7 +303,7 @@ Python tasks running on the Kestra worker:
 ### Serve layer
 
 - `serve.fct_journeys`: partitioned by `start_datetime` (month), clustered by `bike_id, start_station_id`. Resolves `end_station_name` via `dim_stations` and coalesces `duration_s` with the derived fallback.
-- `serve.dashboard`: pre-aggregated long-format table powering the three dashboard tiles (`top_bike`, `seasonal`, `monthly`).
+- `serve.dashboard`: pre-aggregated long-format table powering the three dashboard tiles (`hourly_weekday`, `seasonal`, `monthly`).
 
 
 ---
@@ -297,7 +312,7 @@ Python tasks running on the Kestra worker:
 
 Runs inside the Docker stack on `localhost:8501`, reading from `serve.dashboard`.
 
-**Tile 1 — Most loved bike of the year:** year selector, top bike by hours ridden.
+**Tile 1 — When does London ride?:** Altair hexbin-style heatmap of journey volume by hour and day of week.
 
 **Tile 2 — Rides by season:** grouped bar chart by year, Spring / Summer / Autumn / Winter with matching colours.
 
