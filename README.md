@@ -154,7 +154,7 @@ Create a GCP project at [console.cloud.google.com](https://console.cloud.google.
   - [ ] iam.serviceAccountAdmin
   - [ ] iam.serviceAccountKeyAdmin
   - [ ] resourcemanager.projectIamAdmin
-- [ ] Download key → save to `secrets/terraform-sa-key.json`
+- [ ] Download key → save to `secrets/terraform-sa-key.json` after opening a GitHub Codespace in step 3 below.
 - [ ] Troubleshoot any setup issues. These would come up at `terraform apply`.
 
 
