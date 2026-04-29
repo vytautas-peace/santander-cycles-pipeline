@@ -3,7 +3,7 @@
 An end-to-end batch data pipeline that ingests **TfL Santander Cycles** journey data from the [cycling.data.tfl.gov.uk](https://cycling.data.tfl.gov.uk) open data portal, transforms it through the transform and serve layers, and surfaces insights in a Streamlit dashboard.
 
 
-![Santander Cycles dashboard](etc/dashboard-screenshot.png)
+![Santander Cycles dashboard](etc/san-cycles-v1-hexbin.png)
 
 
 ---
