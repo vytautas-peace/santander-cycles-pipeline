@@ -1,6 +1,6 @@
 # Santander Cycles Data Pipeline
 
-An end-to-end batch data pipeline that ingests **TfL Santander Cycles** journey data from the [cycling.data.tfl.gov.uk](https://cycling.data.tfl.gov.uk) open data portal, transforms it through the transform and serve layers, and surfaces insights in a Streamlit dashboard.
+An end-to-end automated data pipeline that ingests 140 million rows of **TfL Santander Cycles** journey data, transforms it in 5 minutes through parallel processing and prepares an elegant Streamlit dashboard.
 
 
 ![Santander Cycles dashboard](etc/san-cycles-v1-hexbin.png)

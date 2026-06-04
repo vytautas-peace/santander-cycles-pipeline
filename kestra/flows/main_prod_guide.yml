@@ -34,6 +34,7 @@ tasks:
     inputs:
       project: "{{ inputs.project }}"
       location: "{{ inputs.location }}"
+      bucket: "{{ inputs.bucket }}"
       start_date: "{{ inputs.start_date }}"
       end_date: "{{ inputs.end_date }}"
     transmitFailed: true
