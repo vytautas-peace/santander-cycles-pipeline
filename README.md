@@ -337,4 +337,10 @@ Runs inside the Docker stack on `localhost:8501`, reading from `serve.dashboard`
 
 ---
 
+## License
+
+The project code is released to the public domain under [Unlicense](LICENSE).
+
+---
+
 ## Thanks for reading — and following along! ✨😌
